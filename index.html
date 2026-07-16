@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#EDF3E2">
+  <title>CarePilot — Clinic Copilot</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="index.css">
+</head>
+<body>
+
+  <!-- Device frame (desktop preview only — hidden on real mobile) -->
+  <div class="device-mockup">
+    <div class="device-notch" aria-hidden="true"></div>
+    <div class="device-screen">
+
+      <!-- Aurora ambient background -->
+      <div class="aurora" aria-hidden="true">
+        <span class="aurora-blob blob-a"></span>
+        <span class="aurora-blob blob-b"></span>
+        <span class="aurora-blob blob-c"></span>
+      </div>
+
+      <!-- Status bar -->
+      <div class="status-bar" aria-hidden="true">
+        <span class="status-time" id="current-time">09:41</span>
+        <div class="status-icons">
+          <svg viewBox="0 0 24 24" class="status-icon"><path d="M2 22h20V2z" fill="currentColor"/></svg>
+          <svg viewBox="0 0 24 24" class="status-icon"><path d="M12 21c-2.97 0-5.67-1.2-7.62-3.12l1.41-1.41C7.4 18.09 9.6 19 12 19s4.6-.91 6.21-2.53l1.41 1.41C17.67 19.8 14.97 21 12 21zm0-4c-1.9 0-3.61-.77-4.85-2l1.41-1.41C9.43 14.47 10.66 15 12 15s2.57-.53 3.44-1.41l1.41 1.41C15.61 16.23 13.9 17 12 17zm0-4c-.81 0-1.54-.33-2.07-.86l2.07-2.07 2.07 2.07c-.53.53-1.26.86-2.07.86z" fill="currentColor"/></svg>
+          <svg viewBox="0 0 24 24" class="status-icon"><path d="M17 5H3a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm1 9h-2V9h2v5zm4-5v6h-2V9h2z" fill="currentColor"/></svg>
+        </div>
+      </div>
+
+      <!-- Main scrolling canvas -->
+      <main class="canvas-area" id="canvas-area">
+
+        <!-- ============ HOME ============ -->
+        <section class="screen-view active" id="home-screen" aria-label="Home">
+          <header class="screen-header">
+            <div class="stagger" style="--i:0">
+              <p class="header-eyebrow">Wednesday, 15 July</p>
+              <h1 class="header-display">Good morning,<br><em>Dr. Rahul Patel</em></h1>
+            </div>
+            <button class="icon-btn glass stagger" style="--i:1" aria-label="Notifications">
+              <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              <span class="notif-dot" aria-hidden="true"></span>
+            </button>
+          </header>
+
+          <!-- Milo greeting -->
+          <div class="milo-greeting-card stagger" style="--i:2">
+            <div class="milo-greeting-avatar-container">
+              <span class="milo-halo" aria-hidden="true"></span>
+              <img src="assets/milo/milo_happy.png" alt="Milo, your assistant" class="milo-greeting-avatar">
+            </div>
+            <div class="milo-speech-bubble glass-card">
+              <h4 class="milo-bubble-title">Milo</h4>
+              <p class="milo-bubble-text">
+                Good morning, Dr. Patel! 👋 You have <strong>18 appointments</strong> today. I'll keep everything on track. Shall we take a look?
+              </p>
+              <button class="open-milo-chat-btn" id="open-milo-chat-link">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+                <span>Open Milo chat</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Clinic selector -->
+          <button class="clinic-selector-card glass-card stagger" style="--i:3">
+            <div class="clinic-icon-container">
+              <svg viewBox="0 0 24 24" class="clinic-svg-icon">
+                <path d="M19 2H5c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-6 16h-2v-3H9v-2h2v-3h2v3h2v2h-2v3zm6-6h-2V9h2v3zm0-4h-2V5h2v3z" fill="currentColor"/>
+              </svg>
+            </div>
+            <div class="clinic-details-container">
+              <div class="clinic-title-row">
+                <span class="clinic-name">Smile Dental Clinic</span>
+              </div>
+              <div class="clinic-location-row">
+                <svg viewBox="0 0 24 24" class="location-pin-icon">
+                  <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="currentColor"/>
+                </svg>
+                <span class="clinic-location">Trivandrum, Kerala</span>
+              </div>
+            </div>
+            <svg viewBox="0 0 24 24" class="chevron-down-icon"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+
+          <!-- Weekly availability -->
+          <div class="availability-card glass-card stagger" style="--i:4">
+            <div class="card-header-row">
+              <span class="card-header-title">Your availability this week</span>
+              <button class="card-header-link">Full schedule
+                <svg viewBox="0 0 24 24" class="inline-chevron"><polyline points="9 18 15 12 9 6"/></svg>
+              </button>
+            </div>
+
+            <div class="availability-days-row" role="listbox" aria-label="Days of the week">
+              <button class="day-pill active" aria-pressed="true"><span class="day-name">Mon</span><span class="day-num">14</span><span class="day-dot active"></span></button>
+              <button class="day-pill" aria-pressed="false"><span class="day-name">Tue</span><span class="day-num">15</span><span class="day-dot active"></span></button>
+              <button class="day-pill" aria-pressed="false"><span class="day-name">Wed</span><span class="day-num">16</span><span class="day-dot active"></span></button>
+              <button class="day-pill" aria-pressed="false"><span class="day-name">Thu</span><span class="day-num">17</span><span class="day-dot inactive"></span></button>
+              <button class="day-pill" aria-pressed="false"><span class="day-name">Fri</span><span class="day-num">18</span><span class="day-dot active"></span></button>
+              <button class="day-pill" aria-pressed="false"><span class="day-name">Sat</span><span class="day-num">19</span><span class="day-dot inactive"></span></button>
+              <button class="day-pill" aria-pressed="false"><span class="day-name">Sun</span><span class="day-num">20</span><span class="day-dot inactive"></span></button>
+            </div>
+
+            <div class="availability-summary-row">
+              <div class="availability-summary-col">
+                <div class="summary-icon-container">
+                  <svg viewBox="0 0 24 24" class="summary-svg-icon"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                </div>
+                <div class="summary-text-container">
+                  <span class="summary-subtext">Today, Mon 14 Jul</span>
+                  <span class="summary-value">09:00 AM – 05:00 PM</span>
+                  <span class="summary-badge badge-working">Working</span>
+                </div>
+              </div>
+              <div class="availability-summary-col">
+                <div class="summary-icon-container grey-bg">
+                  <svg viewBox="0 0 24 24" class="summary-svg-icon"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                </div>
+                <div class="summary-text-container">
+                  <span class="summary-subtext">18 appointments</span>
+                  <span class="summary-value">01:00 PM – 02:00 PM</span>
+                  <span class="summary-badge badge-lunch">Lunch break</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Today's team -->
+          <div class="section-header-row stagger" style="--i:5">
+            <h3 class="section-title">Today's team</h3>
+            <button class="section-link">View all <svg viewBox="0 0 24 24" class="inline-chevron"><polyline points="9 18 15 12 9 6"/></svg></button>
+          </div>
+
+          <div class="team-cards-row stagger" style="--i:6">
+            <article class="team-profile-card glass-card">
+              <div class="team-profile-top">
+                <div class="team-avatar-container">
+                  <div class="team-avatar bg-reddy">AR</div>
+                  <span class="team-status-dot active" aria-hidden="true"></span>
+                </div>
+                <div class="team-name-specialty">
+                  <h4 class="team-doctor-name">Dr. Anita Reddy</h4>
+                  <span class="team-doctor-specialty">Orthodontist</span>
+                </div>
+              </div>
+              <div class="team-hours-row">
+                <svg viewBox="0 0 24 24" class="small-clock-icon"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 15 15"/></svg>
+                <span>10:00 AM – 05:00 PM</span>
+              </div>
+              <div class="team-status-badge badge-available">Available</div>
+            </article>
+
+            <article class="team-profile-card glass-card">
+              <div class="team-profile-top">
+                <div class="team-avatar-container">
+                  <div class="team-avatar bg-sen">RS</div>
+                  <span class="team-status-dot busy" aria-hidden="true"></span>
+                </div>
+                <div class="team-name-specialty">
+                  <h4 class="team-doctor-name">Dr. Rahul Sen</h4>
+                  <span class="team-doctor-specialty">Oral Surgeon</span>
+                </div>
+              </div>
+              <div class="team-hours-row">
+                <svg viewBox="0 0 24 24" class="small-clock-icon"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 15 15"/></svg>
+                <span>12:00 PM – 08:00 PM</span>
+              </div>
+              <div class="team-status-badge badge-busy">Busy</div>
+            </article>
+
+            <article class="team-profile-card glass-card">
+              <div class="team-profile-top">
+                <div class="team-avatar-container">
+                  <div class="team-avatar bg-philip">SP</div>
+                  <span class="team-status-dot off" aria-hidden="true"></span>
+                </div>
+                <div class="team-name-specialty">
+                  <h4 class="team-doctor-name">Dr. Sarah Philip</h4>
+                  <span class="team-doctor-specialty">Pediatric Dentist</span>
+                </div>
+              </div>
+              <div class="team-hours-row">
+                <svg viewBox="0 0 24 24" class="small-clock-icon"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 15 15"/></svg>
+                <span>09:00 AM – 02:00 PM</span>
+              </div>
+              <div class="team-status-badge badge-off">Off today</div>
+            </article>
+          </div>
+
+          <!-- Today at a glance -->
+          <div class="section-header-row stagger" style="--i:7">
+            <h3 class="section-title">Today at a glance</h3>
+            <button class="section-link">View all <svg viewBox="0 0 24 24" class="inline-chevron"><polyline points="9 18 15 12 9 6"/></svg></button>
+          </div>
+
+          <div class="glance-metrics-card glass-card stagger" style="--i:8">
+            <div class="glance-metrics-col">
+              <div class="glance-icon-container text-green">
+                <svg viewBox="0 0 24 24" class="glance-svg-icon"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              </div>
+              <span class="glance-value">18</span>
+              <span class="glance-label">Appointments</span>
+              <span class="glance-caption">Today</span>
+            </div>
+            <div class="glance-metrics-col">
+              <div class="glance-icon-container text-blue">
+                <svg viewBox="0 0 24 24" class="glance-svg-icon"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              </div>
+              <span class="glance-value">14</span>
+              <span class="glance-label">Confirmed</span>
+              <span class="glance-caption">78%</span>
+            </div>
+            <div class="glance-metrics-col">
+              <div class="glance-icon-container text-orange">
+                <svg viewBox="0 0 24 24" class="glance-svg-icon"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              </div>
+              <span class="glance-value">1h 20m</span>
+              <span class="glance-label">Wait time</span>
+              <span class="glance-caption">So far</span>
+            </div>
+            <div class="glance-metrics-col">
+              <div class="glance-icon-container text-teal">
+                <svg viewBox="0 0 24 24" class="glance-svg-icon"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+              </div>
+              <span class="glance-value">96%</span>
+              <span class="glance-label">On-time</span>
+              <span class="glance-caption">Schedule</span>
+            </div>
+          </div>
+
+          <!-- Milo suggests -->
+          <div class="section-header-row stagger" style="--i:9">
+            <h3 class="section-title">Milo suggests</h3>
+            <button class="section-link">View all <svg viewBox="0 0 24 24" class="inline-chevron"><polyline points="9 18 15 12 9 6"/></svg></button>
+          </div>
+
+          <div class="milo-suggests-list stagger" style="--i:10">
+            <button class="milo-suggests-row glass-card">
+              <div class="suggest-icon-container bg-light-orange text-orange">
+                <svg viewBox="0 0 24 24" class="suggest-svg-icon"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M12 9v2m0 4h.01"/></svg>
+              </div>
+              <div class="suggest-text-container">
+                <span class="suggest-title">2 patients may arrive late</span>
+                <span class="suggest-subtext">Review the list</span>
+              </div>
+              <svg viewBox="0 0 24 24" class="suggest-chevron"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+
+            <button class="milo-suggests-row glass-card">
+              <div class="suggest-icon-container bg-light-green text-green">
+                <svg viewBox="0 0 24 24" class="suggest-svg-icon"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              </div>
+              <div class="suggest-text-container">
+                <span class="suggest-title">Follow up with Sarah</span>
+                <span class="suggest-subtext">You have a pending follow-up</span>
+              </div>
+              <svg viewBox="0 0 24 24" class="suggest-chevron"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+
+            <button class="milo-suggests-row glass-card">
+              <div class="suggest-icon-container bg-light-blue text-blue">
+                <svg viewBox="0 0 24 24" class="suggest-svg-icon"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg>
+              </div>
+              <div class="suggest-text-container">
+                <span class="suggest-title">30-minute gap after lunch</span>
+                <span class="suggest-subtext">Open this slot to waitlist?</span>
+              </div>
+              <svg viewBox="0 0 24 24" class="suggest-chevron"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+          </div>
+        </section>
+
+        <!-- ============ CALENDAR ============ -->
+        <section class="screen-view" id="calendar-screen" aria-label="Calendar">
+          <header class="screen-header">
+            <div class="stagger" style="--i:0">
+              <p class="header-eyebrow">Calendar</p>
+              <h1 class="header-display">Dr. Patel's<br><em>schedule</em></h1>
+            </div>
+          </header>
+
+          <div class="calendar-strip stagger" style="--i:1" role="listbox" aria-label="Select day">
+            <button class="calendar-day"><span class="day-label">Mon</span><span class="day-number">13</span></button>
+            <button class="calendar-day"><span class="day-label">Tue</span><span class="day-number">14</span></button>
+            <button class="calendar-day active" aria-pressed="true"><span class="day-label">Wed</span><span class="day-number">15</span></button>
+            <button class="calendar-day"><span class="day-label">Thu</span><span class="day-number">16</span></button>
+            <button class="calendar-day"><span class="day-label">Fri</span><span class="day-number">17</span></button>
+          </div>
+
+          <h3 class="section-title timeline-heading stagger" style="--i:2">Timeline</h3>
+
+          <div class="timeline-container stagger" style="--i:3">
+            <div class="timeline-item">
+              <div class="timeline-time">09:00<span>AM</span></div>
+              <button class="timeline-content glass-card urgent">
+                <h4 class="timeline-title">John Doe</h4>
+                <p class="timeline-subtitle">Cardio Consultation</p>
+              </button>
+            </div>
+            <div class="timeline-item">
+              <div class="timeline-time">10:30<span>AM</span></div>
+              <button class="timeline-content glass-card">
+                <h4 class="timeline-title">Sarah Smith</h4>
+                <p class="timeline-subtitle">Routine Health Check</p>
+              </button>
+            </div>
+            <div class="timeline-item">
+              <div class="timeline-time">12:00<span>PM</span></div>
+              <div class="timeline-content break">
+                <h4 class="timeline-title">Lunch Break</h4>
+                <p class="timeline-subtitle">Clinic Blocked</p>
+              </div>
+            </div>
+            <div class="timeline-item">
+              <div class="timeline-time">01:30<span>PM</span></div>
+              <button class="timeline-content glass-card">
+                <h4 class="timeline-title">Robert Johnson</h4>
+                <p class="timeline-subtitle">Follow-up: Meds Review</p>
+              </button>
+            </div>
+            <div class="timeline-item">
+              <div class="timeline-time">03:00<span>PM</span></div>
+              <button class="timeline-content glass-card">
+                <h4 class="timeline-title">Emily Davis</h4>
+                <p class="timeline-subtitle">Physical Therapy Review</p>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ MILO CHAT ============ -->
+        <section class="screen-view" id="milo-screen" aria-label="Milo assistant chat">
+          <div class="milo-chat-header glass-card stagger" style="--i:0">
+            <div class="milo-profile-pic">
+              <img id="milo-main-avatar" src="assets/milo/milo_happy.png" alt="Milo">
+              <span class="milo-status-dot" aria-hidden="true"></span>
+            </div>
+            <div class="milo-chat-title">
+              <h3>Milo Assistant</h3>
+              <p><span class="live-dot" aria-hidden="true"></span>Active · AI health buddy</p>
+            </div>
+          </div>
+
+          <div class="emotion-bar stagger" style="--i:1" role="tablist" aria-label="Milo mood">
+            <button class="emotion-tag active" data-state="happy">Happy</button>
+            <button class="emotion-tag" data-state="thinking">Thinking</button>
+            <button class="emotion-tag" data-state="thumbsup">Success</button>
+            <button class="emotion-tag" data-state="caring">Caring</button>
+            <button class="emotion-tag" data-state="alert">Alert</button>
+            <button class="emotion-tag" data-state="reviewing">Reviewing</button>
+          </div>
+
+          <div class="chat-messages-container stagger" style="--i:2" id="chat-messages" aria-live="polite">
+            <div class="chat-bubble-row milo-bubble">
+              <img src="assets/milo/milo_happy.png" alt="Milo" class="chat-avatar" id="milo-chat-icon">
+              <div class="chat-bubble-content">
+                <p>Hello Dr. Patel! I've been monitoring patient records and laboratory feeds. I found 1 urgent lab result for <strong>John Doe</strong> and prepared a draft follow-up plan. How can I help you today?</p>
+                <span class="chat-time">Just now</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="quick-replies-container stagger" style="--i:3">
+            <button class="quick-reply-chip" id="chip-sum">Summarize John Doe</button>
+            <button class="quick-reply-chip" id="chip-draft">Draft clinical notes</button>
+            <button class="quick-reply-chip" id="chip-schedule">Show upcoming schedule</button>
+          </div>
+
+          <div class="chat-input-bar glass-card stagger" style="--i:4">
+            <input type="text" placeholder="Ask Milo anything…" class="chat-input-field" id="chat-input" aria-label="Message Milo">
+            <button class="chat-send-btn" id="chat-send" aria-label="Send message">
+              <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            </button>
+          </div>
+        </section>
+
+        <!-- ============ PATIENTS ============ -->
+        <section class="screen-view" id="patients-screen" aria-label="Patients">
+          <header class="screen-header">
+            <div class="stagger" style="--i:0">
+              <p class="header-eyebrow">Patients</p>
+              <h1 class="header-display">My case<br><em>practice</em></h1>
+            </div>
+            <button class="icon-btn primary-bg stagger" style="--i:1" aria-label="Add patient">
+              <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </button>
+          </header>
+
+          <div class="search-container stagger" style="--i:2">
+            <svg class="search-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" placeholder="Search by name, DOB, ID…" class="search-input" aria-label="Search patients">
+          </div>
+
+          <div class="filter-strip stagger" style="--i:3" role="tablist" aria-label="Filter patients">
+            <button class="filter-pill active">All patients</button>
+            <button class="filter-pill">Active</button>
+            <button class="filter-pill">Critical</button>
+            <button class="filter-pill">Archived</button>
+          </div>
+
+          <div class="patient-list stagger" style="--i:4">
+            <button class="patient-list-card glass-card">
+              <div class="avatar-gradient">JD</div>
+              <div class="patient-list-info">
+                <h4>John Doe</h4>
+                <p>Male, 45 yrs · ID #9842</p>
+                <span class="badge badge-urgent">Lab alert</span>
+              </div>
+              <svg class="chevron-icon" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+
+            <button class="patient-list-card glass-card">
+              <div class="avatar-gradient secondary">SS</div>
+              <div class="patient-list-info">
+                <h4>Sarah Smith</h4>
+                <p>Female, 32 yrs · ID #8831</p>
+                <span class="badge badge-success">Recovered</span>
+              </div>
+              <svg class="chevron-icon" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+
+            <button class="patient-list-card glass-card">
+              <div class="avatar-gradient tertiary">RJ</div>
+              <div class="patient-list-info">
+                <h4>Robert Johnson</h4>
+                <p>Male, 61 yrs · ID #7729</p>
+                <span class="badge badge-neutral">Stable</span>
+              </div>
+              <svg class="chevron-icon" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+
+            <button class="patient-list-card glass-card">
+              <div class="avatar-gradient info">ED</div>
+              <div class="patient-list-info">
+                <h4>Emily Davis</h4>
+                <p>Female, 28 yrs · ID #6214</p>
+                <span class="badge badge-neutral">Stable</span>
+              </div>
+              <svg class="chevron-icon" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+          </div>
+        </section>
+
+        <!-- ============ MORE ============ -->
+        <section class="screen-view" id="more-screen" aria-label="Menu">
+          <header class="screen-header">
+            <div class="stagger" style="--i:0">
+              <p class="header-eyebrow">CarePilot menu</p>
+              <h1 class="header-display">Clinic<br><em>settings</em></h1>
+            </div>
+          </header>
+
+          <div class="doctor-profile-card glass-card stagger" style="--i:1">
+            <div class="doctor-profile-main">
+              <div class="avatar-gradient large">RP</div>
+              <div class="doctor-details">
+                <h4>Dr. Rahul Patel, MD</h4>
+                <p>Clinic Director &amp; Dentist</p>
+                <span class="badge badge-success">Verified practice</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="menu-list stagger" style="--i:2">
+            <div class="menu-item-section">Practice &amp; settings</div>
+
+            <button class="menu-item glass-card">
+              <div class="menu-item-left">
+                <span class="menu-icon-wrap"><svg viewBox="0 0 24 24" class="menu-icon"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
+                <span>Settings</span>
+              </div>
+              <svg class="chevron-icon" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+
+            <button class="menu-item glass-card">
+              <div class="menu-item-left">
+                <span class="menu-icon-wrap"><svg viewBox="0 0 24 24" class="menu-icon"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+                <span>Manage clinic staff</span>
+              </div>
+              <svg class="chevron-icon" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+
+            <div class="menu-item-section">Support &amp; app</div>
+
+            <button class="menu-item glass-card">
+              <div class="menu-item-left">
+                <span class="menu-icon-wrap"><svg viewBox="0 0 24 24" class="menu-icon"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
+                <span>Contact support</span>
+              </div>
+              <svg class="chevron-icon" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+
+            <button class="menu-item glass-card">
+              <div class="menu-item-left">
+                <span class="menu-icon-wrap"><svg viewBox="0 0 24 24" class="menu-icon"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg></span>
+                <span>Share app</span>
+              </div>
+              <svg class="chevron-icon" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+
+            <button class="menu-item glass-card">
+              <div class="menu-item-left">
+                <span class="menu-icon-wrap"><svg viewBox="0 0 24 24" class="menu-icon"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
+                <span>Privacy &amp; terms</span>
+              </div>
+              <svg class="chevron-icon" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+
+            <button class="menu-item glass-card logout">
+              <div class="menu-item-left">
+                <span class="menu-icon-wrap"><svg viewBox="0 0 24 24" class="menu-icon"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></span>
+                <span>Log out</span>
+              </div>
+            </button>
+          </div>
+        </section>
+
+      </main>
+
+      <!-- Floating frosted bottom nav -->
+      <nav class="bottom-nav" aria-label="Primary">
+        <button class="nav-item active" data-view="home" aria-label="Home">
+          <svg viewBox="0 0 24 24"><path d="M3 9.5L12 3l9 6.5V20a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9.5z"/></svg>
+          <span class="nav-label">Home</span>
+        </button>
+
+        <button class="nav-item" data-view="calendar" aria-label="Calendar">
+          <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          <span class="nav-label">Calendar</span>
+        </button>
+
+        <div class="nav-spacer" aria-hidden="true"></div>
+
+        <button class="nav-item" data-view="patients" aria-label="Patients">
+          <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          <span class="nav-label">Patients</span>
+        </button>
+
+        <button class="nav-item" data-view="more" aria-label="More">
+          <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+          <span class="nav-label">More</span>
+        </button>
+
+        <button class="milo-btn" id="milo-btn" data-view="milo" aria-label="Open Milo assistant">
+          <span class="milo-ring" aria-hidden="true"></span>
+          <span class="milo-btn-inner">
+            <img src="assets/milo/milo_happy.png" alt="" class="milo-img" id="milo-nav-image">
+          </span>
+        </button>
+      </nav>
+
+      <div class="home-indicator" aria-hidden="true"></div>
+
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
