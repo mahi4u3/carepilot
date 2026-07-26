@@ -55,58 +55,17 @@ body {
   overflow: hidden;
 }
 
-/* --- Device Mockup Frame (iPhone 12/13/14 size emulation) --- */
-.device-mockup {
+/* --- Simulated Mobile Screen Container --- */
+.device-screen {
   position: relative;
   width: 390px;
   height: 844px;
-  background: #111111; /* Sleek black phone frame */
-  border-radius: 48px;
-  padding: 12px;
-  box-shadow: 0px 25px 60px rgba(0, 0, 0, 0.25),
-              0px 0px 0px 4px #2E2D2C;
-  display: flex;
-  flex-direction: column;
-}
-
-.device-notch {
-  position: absolute;
-  top: 18px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 110px;
-  height: 30px;
-  background: #111111;
-  border-radius: 0 0 18px 18px;
-  z-index: 100;
-}
-
-.device-screen {
-  position: relative;
-  width: 100%;
-  height: 100%;
   background-color: var(--bg-color);
   border-radius: 36px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  box-shadow: inset 0px 0px 10px rgba(0,0,0,0.15);
-}
-
-/* --- iOS-style Status Bar --- */
-.status-bar {
-  height: 44px;
-  padding: 0 28px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  color: var(--text-primary);
-  font-size: 14px;
-  font-weight: 600;
-  font-family: 'Inter', sans-serif;
-  z-index: 90;
-  user-select: none;
-  background: transparent;
+  box-shadow: 0px 20px 50px rgba(0, 0, 0, 0.1), 0px 0px 0px 1px var(--divider);
 }
 
 .status-icons {
@@ -484,20 +443,7 @@ body {
   transform: scale(1.05);
 }
 
-/* --- iPhone Home Indicator line --- */
-.home-indicator {
-  position: absolute;
-  bottom: 8px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 134px;
-  height: 5px;
-  background-color: #000000;
-  border-radius: 10px;
-  z-index: 100;
-  opacity: 0.8;
-  pointer-events: none;
-}
+
 
 /* --- Card Styles (Core component) --- */
 .appointment-card {

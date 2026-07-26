@@ -7,7 +7,6 @@ let activeView = 'home';
 const navItems = document.querySelectorAll('.nav-item');
 const miloBtn = document.getElementById('milo-btn');
 const screenViews = document.querySelectorAll('.screen-view');
-const statusTime = document.getElementById('current-time');
 const miloNavImage = document.getElementById('milo-nav-image');
 
 // --- Navigation State Controller ---
@@ -55,22 +54,7 @@ miloBtn.addEventListener('click', () => {
   setView('milo');
 });
 
-// --- Dynamic Clock in Status Bar ---
-function updateClock() {
-  const now = new Date();
-  let hours = now.getHours();
-  let minutes = now.getMinutes();
-  
-  // Format to HH:MM
-  hours = hours < 10 ? '0' + hours : hours;
-  minutes = minutes < 10 ? '0' + minutes : minutes;
-  
-  if (statusTime) {
-    statusTime.textContent = `${hours}:${minutes}`;
-  }
-}
-setInterval(updateClock, 1000);
-updateClock(); // Initial run
+
 
 // --- Home Screen Interactions (Milo Suggestion Card) ---
 const suggestionCard = document.querySelector('.milo-suggestion-card');
