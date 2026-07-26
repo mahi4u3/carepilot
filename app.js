@@ -1,92 +1,78 @@
-// CarePilot — Client logic & interaction manager
-// (Aurora Glass redesign: adds typing indicator, staggered view
-// entrances, live pill selection, and XSS-safe user input.)
+// CarePilot Client Logic & Interaction Manager
 
-// ---------- Global state ----------
+// Global State
 let activeView = 'home';
 
-// ---------- DOM references ----------
+// DOM Elements
 const navItems = document.querySelectorAll('.nav-item');
 const miloBtn = document.getElementById('milo-btn');
 const screenViews = document.querySelectorAll('.screen-view');
 const statusTime = document.getElementById('current-time');
 const miloNavImage = document.getElementById('milo-nav-image');
-const canvasArea = document.getElementById('canvas-area');
 
-// ---------- Navigation controller ----------
+// --- Navigation State Controller ---
 function setView(viewId) {
-  if (viewId === activeView) return;
   activeView = viewId;
 
-  // 1. Nav tab active states
+  // 1. Update Navigation Tabs Active States
   navItems.forEach(item => {
-    item.classList.toggle('active', item.dataset.view === viewId);
+    if (item.dataset.view === viewId) {
+      item.classList.add('active');
+    } else {
+      item.classList.remove('active');
+    }
   });
 
-  // 2. Milo FAB active state
-  miloBtn.classList.toggle('active', viewId === 'milo');
+  // 2. Update Milo Overlapping Button Active State
+  if (viewId === 'milo') {
+    miloBtn.classList.add('active');
+  } else {
+    miloBtn.classList.remove('active');
+  }
 
-  // 3. Switch visible screen and replay staggered entrance
+  // 3. Toggle Visible Screen View with Fade Transition
   screenViews.forEach(screen => {
-    const isTarget = screen.id === `${viewId}-screen`;
-    screen.classList.toggle('active', isTarget);
-    if (isTarget) restartStagger(screen);
+    if (screen.id === `${viewId}-screen`) {
+      screen.classList.add('active');
+    } else {
+      screen.classList.remove('active');
+    }
   });
 
-  // 4. Scroll canvas to top
+  // 4. Scroll canvas back to top on view changes
+  const canvasArea = document.getElementById('canvas-area');
   canvasArea.scrollTop = 0;
 }
 
-// Re-trigger entrance animations for elements inside a view
-function restartStagger(screen) {
-  const items = screen.querySelectorAll('.stagger');
-  items.forEach(el => {
-    el.style.animation = 'none';
-    // Force reflow so the animation restarts
-    void el.offsetWidth;
-    el.style.animation = '';
-  });
-}
-
+// Bind Navigation Click Listeners
 navItems.forEach(item => {
-  item.addEventListener('click', () => setView(item.dataset.view));
+  item.addEventListener('click', () => {
+    setView(item.dataset.view);
+  });
 });
 
-miloBtn.addEventListener('click', () => setView('milo'));
+miloBtn.addEventListener('click', () => {
+  setView('milo');
+});
 
-// ---------- Status bar clock ----------
+// --- Dynamic Clock in Status Bar ---
 function updateClock() {
   const now = new Date();
-  const hours = String(now.getHours()).padStart(2, '0');
-  const minutes = String(now.getMinutes()).padStart(2, '0');
-  if (statusTime) statusTime.textContent = `${hours}:${minutes}`;
+  let hours = now.getHours();
+  let minutes = now.getMinutes();
+  
+  // Format to HH:MM
+  hours = hours < 10 ? '0' + hours : hours;
+  minutes = minutes < 10 ? '0' + minutes : minutes;
+  
+  if (statusTime) {
+    statusTime.textContent = `${hours}:${minutes}`;
+  }
 }
 setInterval(updateClock, 1000);
-updateClock();
+updateClock(); // Initial run
 
-// ---------- Generic toggle groups (visual selection states) ----------
-// Day pills on the availability card, calendar strip days, and
-// patient filter pills all behave as single-select groups.
-function bindToggleGroup(selector, activeClass = 'active') {
-  document.querySelectorAll(selector).forEach(group => {
-    group.addEventListener('click', (e) => {
-      const btn = e.target.closest('button');
-      if (!btn || !group.contains(btn)) return;
-      group.querySelectorAll('button').forEach(b => {
-        b.classList.toggle(activeClass, b === btn);
-        if (b.hasAttribute('aria-pressed')) {
-          b.setAttribute('aria-pressed', String(b === btn));
-        }
-      });
-    });
-  });
-}
-
-bindToggleGroup('.availability-days-row');
-bindToggleGroup('.calendar-strip');
-bindToggleGroup('.filter-strip');
-
-// ---------- Home screen: legacy suggestion card hooks ----------
+// --- Home Screen Interactions (Milo Suggestion Card) ---
 const suggestionCard = document.querySelector('.milo-suggestion-card');
 const dismissBtn = document.getElementById('milo-dismiss');
 const actionBtn = document.getElementById('milo-action-btn');
@@ -97,7 +83,9 @@ if (dismissBtn && suggestionCard) {
     suggestionCard.style.transition = 'all 0.3s ease';
     suggestionCard.style.opacity = '0';
     suggestionCard.style.transform = 'scale(0.95)';
-    setTimeout(() => { suggestionCard.style.display = 'none'; }, 300);
+    setTimeout(() => {
+      suggestionCard.style.display = 'none';
+    }, 300);
   });
 }
 
@@ -105,11 +93,12 @@ if (actionBtn) {
   actionBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     setView('milo');
-    simulateMiloInteraction('Draft a message to John Doe for a lab results follow-up.');
+    // Simulate typing a draft request
+    simulateMiloInteraction("Draft a message to John Doe for a lab results follow-up.");
   });
 }
 
-// ---------- Milo chat ----------
+// --- Milo Assistant Chat View Logic ---
 const chatMessages = document.getElementById('chat-messages');
 const chatInput = document.getElementById('chat-input');
 const chatSend = document.getElementById('chat-send');
@@ -117,6 +106,7 @@ const miloMainAvatar = document.getElementById('milo-main-avatar');
 const miloChatIcon = document.getElementById('milo-chat-icon');
 const emotionTags = document.querySelectorAll('.emotion-tag');
 
+// Available Mascot Images mapped to emotions
 const miloAssets = {
   happy: 'assets/milo/milo_happy.png',
   thinking: 'assets/milo/milo_thinking.png',
@@ -126,98 +116,75 @@ const miloAssets = {
   reviewing: 'assets/milo/milo_reviewing.png'
 };
 
+// Update Milo's emotion in avatar slots
 function changeMiloEmotion(emotion) {
   const assetPath = miloAssets[emotion] || miloAssets.happy;
-
+  
+  // Update avatars with scale pop effect
   if (miloMainAvatar) {
     miloMainAvatar.src = assetPath;
     miloMainAvatar.style.transform = 'scale(1.15)';
-    setTimeout(() => { miloMainAvatar.style.transform = 'scale(1)'; }, 220);
+    setTimeout(() => miloMainAvatar.style.transform = 'scale(1)', 200);
   }
-
+  
   if (miloNavImage) {
     miloNavImage.src = assetPath;
     miloNavImage.style.transform = 'scale(1.15)';
-    setTimeout(() => { miloNavImage.style.transform = 'scale(1)'; }, 220);
+    setTimeout(() => miloNavImage.style.transform = 'scale(1)', 200);
   }
 
-  if (miloChatIcon) miloChatIcon.src = assetPath;
+  if (miloChatIcon) {
+    miloChatIcon.src = assetPath;
+  }
 
+  // Update active pill styling in emotion strip
   emotionTags.forEach(tag => {
-    tag.classList.toggle('active', tag.dataset.state === emotion);
+    if (tag.dataset.state === emotion) {
+      tag.classList.add('active');
+    } else {
+      tag.classList.remove('active');
+    }
   });
 }
 
+// Bind Emotion Tags clicks
 emotionTags.forEach(tag => {
-  tag.addEventListener('click', () => changeMiloEmotion(tag.dataset.state));
+  tag.addEventListener('click', () => {
+    changeMiloEmotion(tag.dataset.state);
+  });
 });
 
-// Escape user-provided text before injecting into the DOM
-function escapeHTML(str) {
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
-}
-
-// ---------- Typing indicator ----------
-let typingRow = null;
-
-function showTypingIndicator() {
-  if (typingRow) return;
-  const activeEmotion = document.querySelector('.emotion-tag.active')?.dataset.state || 'thinking';
-  const asset = miloAssets[activeEmotion] || miloAssets.thinking;
-
-  typingRow = document.createElement('div');
-  typingRow.className = 'chat-bubble-row milo-bubble';
-  typingRow.innerHTML = `
-    <img src="${asset}" alt="" class="chat-avatar">
-    <div class="chat-bubble-content">
-      <span class="typing-indicator" aria-label="Milo is typing"><i></i><i></i><i></i></span>
-    </div>
-  `;
-  chatMessages.appendChild(typingRow);
-  chatMessages.scrollTop = chatMessages.scrollHeight;
-}
-
-function hideTypingIndicator() {
-  if (typingRow) {
-    typingRow.remove();
-    typingRow = null;
-  }
-}
-
-// ---------- Chat message rendering ----------
-function appendChatMessage(sender, text, { html = false } = {}) {
+// Add message to chat history UI
+function appendChatMessage(sender, text) {
   const row = document.createElement('div');
   row.className = `chat-bubble-row ${sender === 'user' ? 'user-bubble' : 'milo-bubble'}`;
-
-  const safeText = html ? text : escapeHTML(text);
+  
   const timeStr = 'Just now';
-
+  
   if (sender === 'milo') {
     const activeEmotion = document.querySelector('.emotion-tag.active')?.dataset.state || 'happy';
     const currentAsset = miloAssets[activeEmotion];
     row.innerHTML = `
       <img src="${currentAsset}" alt="Milo" class="chat-avatar">
       <div class="chat-bubble-content">
-        <p>${safeText}</p>
+        <p>${text}</p>
         <span class="chat-time">${timeStr}</span>
       </div>
     `;
   } else {
     row.innerHTML = `
       <div class="chat-bubble-content">
-        <p>${safeText}</p>
+        <p>${text}</p>
         <span class="chat-time">${timeStr}</span>
       </div>
     `;
   }
-
+  
   chatMessages.appendChild(row);
   chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
-// ---------- Simulated Milo responses ----------
+// Simulated Milo responses based on keyword queries
 function getMiloResponse(userMsg) {
   const msg = userMsg.toLowerCase();
   if (msg.includes('john') || msg.includes('doe') || msg.includes('summarize')) {
@@ -226,64 +193,95 @@ function getMiloResponse(userMsg) {
     return "Here is a message draft for John Doe:<br><br><em>'Hi John, Dr. Patel's office here. We received your recent dental lab reports. Dr. Patel would like to schedule a quick 15-minute follow-up this Friday to review the results together. Please click here to select a time: carepilot.link/jd-sched'</em>";
   } else if (msg.includes('schedule') || msg.includes('calendar') || msg.includes('upcoming')) {
     return "You have <strong>3 appointments</strong> left today:<br>• 10:30 AM: Sarah Smith (Routine check)<br>• 01:30 PM: Robert Johnson (Meds review)<br>• 03:00 PM: Emily Davis (Therapy check)";
+  } else {
+    return "I am on it! Let me fetch that information from the clinic records for you. Is there anything else you'd like to check in the meantime?";
   }
-  return "I am on it! Let me fetch that information from the clinic records for you. Is there anything else you'd like to check in the meantime?";
 }
 
-// Shared reply lifecycle: thinking → typing dots → reply
-function miloReply(sourceText, nextEmotion, delay = 1100) {
-  changeMiloEmotion('thinking');
-  showTypingIndicator();
-  setTimeout(() => {
-    hideTypingIndicator();
-    changeMiloEmotion(nextEmotion);
-    appendChatMessage('milo', getMiloResponse(sourceText), { html: true });
-  }, delay);
-}
-
-// ---------- Send actions ----------
+// Core send action
 function sendMessage() {
   const text = chatInput.value.trim();
   if (!text) return;
-
+  
   chatInput.value = '';
   appendChatMessage('user', text);
-
-  const nextEmotion = text.toLowerCase().includes('draft') ? 'thumbsup' : 'happy';
-  miloReply(text, nextEmotion);
+  
+  // Trigger Milo response lifecycle (thinking state -> reply)
+  changeMiloEmotion('thinking');
+  
+  // Create simulated typing delay
+  setTimeout(() => {
+    const replyText = getMiloResponse(text);
+    // Switch to thumbsup or happy on success response
+    const nextEmotion = text.toLowerCase().includes('draft') ? 'thumbsup' : 'happy';
+    changeMiloEmotion(nextEmotion);
+    appendChatMessage('milo', replyText);
+  }, 1000);
 }
 
+// Trigger conversation programmatically (for suggestion card click)
 function simulateMiloInteraction(userPrompt) {
   setTimeout(() => {
     appendChatMessage('user', userPrompt);
-    miloReply('draft', 'thumbsup', 1200);
+    changeMiloEmotion('thinking');
+    
+    setTimeout(() => {
+      changeMiloEmotion('thumbsup');
+      const draftResponse = getMiloResponse('draft');
+      appendChatMessage('milo', draftResponse);
+    }, 1200);
   }, 300);
 }
 
+// Click and Enter event listeners for chat input
 if (chatSend && chatInput) {
   chatSend.addEventListener('click', sendMessage);
   chatInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') sendMessage();
+    if (e.key === 'Enter') {
+      sendMessage();
+    }
   });
 }
 
-// ---------- Quick reply chips ----------
-const quickReplies = [
-  { id: 'chip-sum', prompt: "Summarize John Doe's profile", keyword: 'summarize', emotion: 'reviewing' },
-  { id: 'chip-draft', prompt: 'Draft a follow-up message to John', keyword: 'draft', emotion: 'thumbsup' },
-  { id: 'chip-schedule', prompt: 'What does my schedule look like?', keyword: 'schedule', emotion: 'happy' }
-];
+// Quick Reply Chips interaction
+const chipSum = document.getElementById('chip-sum');
+const chipDraft = document.getElementById('chip-draft');
+const chipSchedule = document.getElementById('chip-schedule');
 
-quickReplies.forEach(({ id, prompt, keyword, emotion }) => {
-  const chip = document.getElementById(id);
-  if (!chip) return;
-  chip.addEventListener('click', () => {
-    appendChatMessage('user', prompt);
-    miloReply(keyword, emotion, 1000);
+if (chipSum) {
+  chipSum.addEventListener('click', () => {
+    appendChatMessage('user', "Summarize John Doe's profile");
+    changeMiloEmotion('thinking');
+    setTimeout(() => {
+      changeMiloEmotion('reviewing');
+      appendChatMessage('milo', getMiloResponse('summarize'));
+    }, 1000);
   });
-});
+}
 
-// ---------- Speech bubble "Open Milo chat" link ----------
+if (chipDraft) {
+  chipDraft.addEventListener('click', () => {
+    appendChatMessage('user', "Draft a follow-up message to John");
+    changeMiloEmotion('thinking');
+    setTimeout(() => {
+      changeMiloEmotion('thumbsup');
+      appendChatMessage('milo', getMiloResponse('draft'));
+    }, 1000);
+  });
+}
+
+if (chipSchedule) {
+  chipSchedule.addEventListener('click', () => {
+    appendChatMessage('user', "What does my schedule look like?");
+    changeMiloEmotion('thinking');
+    setTimeout(() => {
+      changeMiloEmotion('happy');
+      appendChatMessage('milo', getMiloResponse('schedule'));
+    }, 1000);
+  });
+}
+
+// Bind Open Milo Chat Link inside the speech bubble
 const openMiloChatLink = document.getElementById('open-milo-chat-link');
 if (openMiloChatLink) {
   openMiloChatLink.addEventListener('click', (e) => {
@@ -291,3 +289,19 @@ if (openMiloChatLink) {
     setView('milo');
   });
 }
+
+// --- Startup Loading Screen Controller ---
+document.addEventListener('DOMContentLoaded', () => {
+  const loadingScreen = document.getElementById('loading-screen');
+  if (loadingScreen) {
+    // Keep visible for 2000ms, then trigger fade-out
+    setTimeout(() => {
+      loadingScreen.classList.add('fade-out');
+      
+      // Turn off display after 500ms animation finishes
+      setTimeout(() => {
+        loadingScreen.style.display = 'none';
+      }, 500);
+    }, 2000);
+  }
+});
