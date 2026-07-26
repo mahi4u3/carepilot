@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CarePilot v0.3 — Milo, the AI Practice Coordinator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700&family=Schibsted+Grotesk:wght@400;500;600;700&family=Noto+Sans+Malayalam:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    color-scheme: light;
+    --ink:#12312B; --ink-soft:#4A625B; --ink-faint:#7E938C;
+    --surface:#F2F6F3; --card:#FFFFFF; --line:#DCE6E0;
+    --green:#0E7C66; --green-deep:#0A5C4C; --green-tint:#E3F0EB;
+    --laterite:#C2492E; --laterite-tint:#FBEAE5;
+    --amber:#B97D10; --amber-tint:#FCF3E1;
+    --wa:#1FAE54; --wa-tint:#E7F7EC;
+    --otter:#8B5E3C; --otter-tint:#F4EAE0;
+    --radius:14px;
+    --shadow:0 1px 2px rgba(18,49,43,.06), 0 8px 24px rgba(18,49,43,.07);
+    --display:"Bricolage Grotesque","Segoe UI",sans-serif;
+    --body:"Schibsted Grotesk","Segoe UI",sans-serif;
+    --ml:"Noto Sans Malayalam","Nirmala UI",sans-serif;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{height:100%;}
+  body{font-family:var(--body); background:var(--surface); color:var(--ink); -webkit-font-smoothing:antialiased;}
+  button{font-family:inherit; cursor:pointer; border:none; background:none; color:inherit;}
+  button:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--green); outline-offset:2px; border-radius:6px;}
+  input{font-family:inherit;}
+
+  .shell{max-width:1180px; margin:0 auto; padding:28px 20px 60px;}
+  .masthead{display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; margin-bottom:6px;}
+  .masthead h1{font-family:var(--display); font-weight:700; font-size:clamp(22px,3vw,30px); letter-spacing:-.01em;}
+  .masthead .wordmark-dot{color:var(--green);}
+  .masthead .sub{color:var(--ink-soft); font-size:14px;}
+  .stage-note{color:var(--ink-faint); font-size:12.5px; margin-bottom:22px; max-width:780px; line-height:1.5;}
+  .stage-note b{color:var(--ink-soft); font-weight:600;}
+  .stage{display:flex; gap:34px; align-items:flex-start; justify-content:center;}
+
+  .phone-wrap{flex:0 0 auto;}
+  .phone{width:392px; height:820px; background:var(--card); border-radius:38px; border:1px solid var(--line); box-shadow:0 2px 6px rgba(18,49,43,.08), 0 24px 60px rgba(18,49,43,.14); overflow:hidden; position:relative; display:flex; flex-direction:column;}
+  .statusbar{height:34px; display:flex; align-items:center; justify-content:space-between; padding:0 22px; font-size:12px; color:var(--ink-soft); background:var(--card); flex:0 0 auto; font-weight:600;}
+  .appbar{padding:6px 18px 12px; background:var(--card); border-bottom:1px solid var(--line); flex:0 0 auto;}
+  .appbar .clinic{font-family:var(--display); font-weight:600; font-size:18px;}
+  .appbar .meta{font-size:12px; color:var(--ink-faint); margin-top:1px;}
+  .screen{flex:1 1 auto; overflow-y:auto; background:var(--surface); position:relative; display:flex; flex-direction:column;}
+  .screen::-webkit-scrollbar{width:0;}
+
+  .tabbar{flex:0 0 auto; display:flex; border-top:1px solid var(--line); background:var(--card); padding:6px 4px calc(10px + env(safe-area-inset-bottom));}
+  .tab{flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; padding:7px 2px 5px; font-size:10.5px; color:var(--ink-faint); border-radius:10px; position:relative; font-weight:600;}
+  .tab .glyph{font-size:17px; line-height:1;}
+  .tab .glyph svg{display:block;}
+  .tab.active{color:var(--green-deep); background:var(--green-tint);}
+  .tab .badge{position:absolute; top:2px; right:calc(50% - 24px); background:var(--laterite); color:#fff; font-size:10px; font-weight:700; min-width:17px; height:17px; border-radius:9px; display:flex; align-items:center; justify-content:center; padding:0 4px;}
+
+  .pad{padding:14px 14px 90px;}
+  .doc-banner{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:12px 14px; display:flex; align-items:center; gap:12px; box-shadow:var(--shadow);}
+  .doc-dot{width:11px; height:11px; border-radius:50%; flex:0 0 auto;}
+  .doc-dot.ok{background:var(--green);} .doc-dot.warn{background:var(--amber);} .doc-dot.away{background:var(--laterite);}
+  .doc-banner .who{font-weight:700; font-size:14.5px;}
+  .doc-banner .state{font-size:12.5px; color:var(--ink-soft);}
+  .day-strip{display:flex; gap:8px; margin:12px 0 2px; font-size:11.5px; color:var(--ink-soft); flex-wrap:wrap;}
+  .day-chip{background:var(--card); border:1px solid var(--line); border-radius:999px; padding:4px 10px;}
+  .day-chip b{color:var(--ink); font-weight:700;}
+
+  .sugg{margin-top:12px; border-radius:var(--radius); padding:13px 14px; border:1px solid; box-shadow:var(--shadow); background:var(--card); position:relative;}
+  .sugg.warn{border-color:#EAD9AE; background:var(--amber-tint);}
+  .sugg.alert{border-color:#EFC4B7; background:var(--laterite-tint);}
+  .sugg.info{border-color:#BFDCD2; background:var(--green-tint);}
+  .sugg .s-head{display:flex; gap:10px; align-items:flex-start;}
+  .sugg .s-milo{flex:0 0 auto; width:34px; height:34px; border-radius:50%; background:var(--otter-tint); border:1px solid #E3D2BE; display:flex; align-items:center; justify-content:center; overflow:hidden;}
+  .sugg .s-title{font-weight:700; font-size:13.5px; line-height:1.35; padding-top:2px;}
+  .sugg .s-body{font-size:12.5px; color:var(--ink-soft); margin-top:5px; line-height:1.45;}
+  .sugg .s-actions{display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;}
+  .btn{border-radius:10px; padding:8px 13px; font-size:12.5px; font-weight:700; background:var(--ink); color:#fff;}
+  .btn.primary{background:var(--green);} .btn.danger{background:var(--laterite);}
+  .btn.ghost{background:transparent; color:var(--ink-soft); border:1px solid var(--line); font-weight:600;}
+  .btn.wa{background:var(--wa); color:#fff;}
+  .btn:active{transform:translateY(1px);}
+  .btn[disabled]{opacity:.45; cursor:default;}
+
+  .q-head{display:flex; align-items:baseline; justify-content:space-between; margin:18px 2px 8px;}
+  .q-head h2{font-family:var(--display); font-size:15px; font-weight:600;}
+  .q-head .done-note{font-size:11.5px; color:var(--ink-faint);}
+  .qrow{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:11px 13px; margin-bottom:8px; box-shadow:var(--shadow); position:relative;}
+  .qrow.emergency{border-color:#EFC4B7; background:var(--laterite-tint);}
+  .qrow.cancelled{opacity:.55;}
+  .qrow .r-top{display:flex; align-items:center; gap:9px;}
+  .pos{font-family:var(--display); font-weight:700; font-size:13px; color:var(--ink-soft); width:22px; flex:0 0 auto; text-align:center;}
+  .qrow .name{font-weight:700; font-size:14px; flex:1 1 auto;}
+  .times{font-size:12.5px; color:var(--ink-soft); text-align:right; flex:0 0 auto; font-variant-numeric:tabular-nums;}
+  .times .eta-shift{color:var(--amber); font-weight:700;}
+  .times .strike{text-decoration:line-through; color:var(--ink-faint); font-weight:400;}
+  .chips{display:flex; gap:6px; margin-top:7px; margin-left:31px; flex-wrap:wrap; align-items:center;}
+  .chip{font-size:10.5px; font-weight:700; border-radius:999px; padding:3px 9px; letter-spacing:.02em;}
+  .chip.session{background:var(--green); color:#fff;}
+  .chip.arrived{background:var(--green-tint); color:var(--green-deep);}
+  .chip.booked{background:#EEF2EF; color:var(--ink-soft);}
+  .chip.walkin{background:#E8EDF7; color:#3B5580;}
+  .chip.emergency{background:var(--laterite); color:#fff;}
+  .chip.cancelled{background:#EEE; color:#888;}
+  .chip.notified{background:var(--wa-tint); color:#177A3E;}
+  .rowacts{display:flex; gap:7px; margin-top:9px; margin-left:31px; flex-wrap:wrap;}
+  .mini{font-size:11.5px; font-weight:700; padding:6px 10px; border-radius:9px; background:#fff; border:1px solid var(--line); color:var(--ink-soft);}
+  .mini.go{background:var(--green); border-color:var(--green); color:#fff;}
+
+  /* Chat */
+  .chat-pad{padding:14px 12px 8px; flex:1 1 auto;}
+  .msg{display:flex; gap:9px; margin-bottom:12px; align-items:flex-end;}
+  .msg.user{flex-direction:row-reverse;}
+  .m-avatar{flex:0 0 auto; width:40px; height:40px; border-radius:50%; background:var(--otter-tint); border:1px solid #E3D2BE; overflow:hidden; display:flex; align-items:flex-end; justify-content:center;}
+  .m-avatar.none{visibility:hidden; width:40px;}
+  .m-col{max-width:78%; display:flex; flex-direction:column; gap:6px;}
+  .m-bubble{background:var(--card); border:1px solid var(--line); border-radius:16px 16px 16px 5px; padding:10px 13px; font-size:13px; line-height:1.5; box-shadow:var(--shadow);}
+  .msg.user .m-bubble{background:var(--green); color:#fff; border:none; border-radius:16px 16px 5px 16px;}
+  .msg.system .m-bubble{background:var(--laterite-tint); border-color:#EFC4B7; border-radius:12px; font-size:12.5px;}
+  .m-name{font-size:10.5px; font-weight:700; color:var(--ink-faint); margin-left:4px; letter-spacing:.03em;}
+  .m-card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:11px 13px; box-shadow:var(--shadow); font-size:12.5px;}
+  .m-card .mc-title{font-weight:700; font-size:12px; color:var(--ink-soft); letter-spacing:.05em; text-transform:uppercase; margin-bottom:7px;}
+  .m-card .mc-row{display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px dashed var(--line); gap:10px;}
+  .m-card .mc-row:last-child{border-bottom:none;}
+  .m-card .mc-row .t{font-variant-numeric:tabular-nums; color:var(--ink-soft); font-weight:600;}
+  .m-card .mc-row .n{font-weight:700; text-align:right;}
+  .m-card .mc-row .n.missing{color:var(--laterite); font-weight:600;}
+  .m-card .mc-flag{margin-top:8px; background:var(--amber-tint); border:1px solid #EAD9AE; border-radius:9px; padding:7px 10px; font-size:12px; line-height:1.45;}
+  .m-card .mc-good{margin-top:8px; background:var(--green-tint); border:1px solid #BFDCD2; border-radius:9px; padding:7px 10px; font-size:12px; line-height:1.45;}
+  .m-card .btn{margin-top:9px; font-size:12px; padding:7px 11px; margin-right:6px;}
+  .mc-form{display:flex; flex-direction:column; gap:7px; margin-top:4px;}
+  .mc-form label{font-size:11px; font-weight:700; color:var(--ink-soft);}
+  .mc-form input{border:1px solid var(--line); border-radius:9px; padding:8px 10px; font-size:13px; background:var(--surface); color:var(--ink); width:100%;}
+  .mc-form input:focus{outline:2px solid var(--green);}
+  .chat-input-bar{position:sticky; bottom:0; background:var(--surface); padding:8px 12px 12px; flex:0 0 auto;}
+  .chip-row{display:flex; gap:7px; overflow-x:auto; padding-bottom:8px;}
+  .chip-row::-webkit-scrollbar{height:0;}
+  .q-chip{flex:0 0 auto; background:var(--card); border:1px solid var(--line); border-radius:999px; padding:7px 13px; font-size:12px; font-weight:700; color:var(--green-deep); box-shadow:var(--shadow);}
+  .q-chip:hover{border-color:var(--green);}
+  .input-row{display:flex; gap:8px;}
+  .input-row input{flex:1; border:1px solid var(--line); border-radius:12px; padding:10px 13px; font-size:13px; background:var(--card); color:var(--ink);}
+  .input-row input:focus{outline:2px solid var(--green);}
+  .input-row .send{background:var(--green); color:#fff; border-radius:12px; width:42px; font-size:16px; font-weight:700;}
+
+  .req{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:12px 14px; margin-bottom:9px; box-shadow:var(--shadow);}
+  .req .r1{display:flex; justify-content:space-between; align-items:baseline; gap:8px;}
+  .req .num{font-weight:700; font-size:13.5px; font-variant-numeric:tabular-nums;}
+  .req .when{font-size:11.5px; color:var(--ink-faint);}
+  .req .src{font-size:12px; color:var(--ink-soft); margin-top:2px;}
+  .req .stat{margin-top:7px;}
+  .empty{text-align:center; color:var(--ink-faint); font-size:13px; padding:36px 24px; line-height:1.5;}
+  .empty .em-milo{width:74px; margin:0 auto 10px;}
+  .section-note{font-size:12px; color:var(--ink-faint); margin:4px 2px 12px; line-height:1.5;}
+  .slotrow{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:10px 13px; margin-bottom:7px; display:flex; justify-content:space-between; align-items:center; font-size:13px; box-shadow:var(--shadow);}
+  .slotrow .t{font-variant-numeric:tabular-nums; color:var(--ink-soft); font-weight:600; width:74px;}
+  .slotrow .n{font-weight:700; flex:1;}
+  .slotrow.freeslot{border-style:dashed; color:var(--ink-faint); background:transparent; box-shadow:none;}
+  .wl-card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:11px 13px; margin-bottom:7px; display:flex; justify-content:space-between; align-items:center; box-shadow:var(--shadow);}
+  .wl-card .n{font-weight:700; font-size:13.5px;}
+  .wl-card .p{font-size:12px; color:var(--ink-faint);}
+  .sent-mark{font-size:12px; font-weight:700; color:var(--wa);}
+
+  .sheet-scrim{position:absolute; inset:0; background:rgba(18,49,43,.35); display:none; z-index:30;}
+  .sheet-scrim.open{display:block;}
+  .sheet{position:absolute; left:0; right:0; bottom:0; max-height:86%; background:var(--card); border-radius:22px 22px 0 0; z-index:31; transform:translateY(105%); transition:transform .28s cubic-bezier(.32,.72,.28,1); display:flex; flex-direction:column;}
+  .sheet.open{transform:translateY(0);}
+  .sheet-head{padding:16px 18px 10px; border-bottom:1px solid var(--line); flex:0 0 auto;}
+  .sheet-head .grab{width:38px; height:4px; border-radius:2px; background:var(--line); margin:0 auto 12px;}
+  .sheet-head h3{font-family:var(--display); font-size:16px; font-weight:600;}
+  .sheet-head .s-sub{font-size:12px; color:var(--ink-soft); margin-top:2px;}
+  .lang-toggle{display:flex; margin-top:10px; border:1px solid var(--line); border-radius:9px; overflow:hidden; width:max-content;}
+  .lang-toggle button{padding:5px 14px; font-size:12px; font-weight:700; color:var(--ink-soft); background:#fff;}
+  .lang-toggle button.on{background:var(--green); color:#fff;}
+  .sheet-body{overflow-y:auto; padding:12px 16px 16px; flex:1 1 auto;}
+  .draft{border:1px solid var(--line); border-radius:12px; padding:11px 12px; margin-bottom:9px;}
+  .draft .d-to{font-size:12px; font-weight:700; color:var(--ink-soft); display:flex; justify-content:space-between; align-items:center;}
+  .draft .d-msg{margin-top:7px; background:var(--wa-tint); border-radius:4px 12px 12px 12px; padding:9px 11px; font-size:13px; line-height:1.5;}
+  .draft .d-msg.ml{font-family:var(--ml); font-size:13.5px;}
+  .draft .d-acts{display:flex; gap:7px; margin-top:8px;}
+  .sheet-foot{padding:10px 16px calc(14px + env(safe-area-inset-bottom)); border-top:1px solid var(--line); flex:0 0 auto; display:flex; gap:9px;}
+  .sheet-foot .btn{flex:1; padding:12px;}
+
+  .toast{position:absolute; left:14px; right:14px; top:12px; z-index:40; background:var(--ink); color:#fff; border-radius:12px; padding:11px 14px; font-size:12.5px; line-height:1.45; box-shadow:var(--shadow); opacity:0; transform:translateY(-8px); transition:all .25s ease; pointer-events:none;}
+  .toast.show{opacity:1; transform:translateY(0);}
+  .toast b{color:#9FE3C8;}
+
+  .console{flex:0 1 420px; min-width:300px;}
+  .console-card{background:var(--card); border:1px solid var(--line); border-radius:18px; box-shadow:var(--shadow); padding:20px;}
+  .console h2{font-family:var(--display); font-size:19px; font-weight:700; letter-spacing:-.01em;}
+  .console .c-sub{font-size:13px; color:var(--ink-soft); margin-top:3px; line-height:1.5;}
+  .phase-row{display:flex; gap:8px; margin-top:14px;}
+  .phase{flex:1; border:1px solid var(--line); border-radius:12px; padding:10px 8px; text-align:center; font-size:12.5px; font-weight:700; color:var(--ink-soft); background:var(--surface);}
+  .phase .pt{display:block; font-size:10.5px; font-weight:600; color:var(--ink-faint); margin-top:2px;}
+  .phase.on{background:var(--green-tint); border-color:var(--green); color:var(--green-deep);}
+  .chaos{display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-top:14px;}
+  .chaos button{border:1px solid var(--line); background:var(--surface); border-radius:12px; padding:12px; text-align:left; font-size:13px; font-weight:700; color:var(--ink); transition:border-color .15s, background .15s;}
+  .chaos button:hover:not([disabled]){border-color:var(--green); background:var(--green-tint);}
+  .chaos button[disabled]{opacity:.35; cursor:default;}
+  .chaos button .k{display:block; font-size:11px; color:var(--ink-faint); font-weight:600; margin-top:3px;}
+  .chaos button.hot:hover:not([disabled]){border-color:var(--laterite); background:var(--laterite-tint);}
+  .chaos-note{font-size:11.5px; color:var(--ink-faint); margin-top:8px;}
+  .tally{display:grid; grid-template-columns:repeat(3,1fr); gap:9px; margin-top:16px;}
+  .tally .cell{background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:10px 12px;}
+  .tally .v{font-family:var(--display); font-size:22px; font-weight:700; color:var(--green-deep);}
+  .tally .l{font-size:11px; color:var(--ink-soft); font-weight:600; margin-top:1px; line-height:1.3;}
+  .log-h{margin-top:16px; font-size:12px; font-weight:700; color:var(--ink-soft); letter-spacing:.04em; text-transform:uppercase;}
+  .log{margin-top:8px; max-height:190px; overflow-y:auto; font-size:12.5px; line-height:1.55;}
+  .log .entry{padding:6px 0; border-bottom:1px dashed var(--line); color:var(--ink-soft);}
+  .log .entry b{color:var(--ink);}
+  .log .entry .tt{color:var(--ink-faint); font-variant-numeric:tabular-nums; margin-right:6px;}
+  .reset{margin-top:14px; width:100%;}
+  .demo-script{margin-top:16px; background:var(--card); border:1px solid var(--line); border-radius:18px; padding:16px 20px; font-size:12.5px; color:var(--ink-soft); line-height:1.65; box-shadow:var(--shadow);}
+  .demo-script b{color:var(--ink);}
+  .demo-script .ds-h{font-family:var(--display); font-weight:700; font-size:14px; color:var(--ink); margin-bottom:5px;}
+  .demo-script code{background:var(--surface); border:1px solid var(--line); border-radius:6px; padding:1px 6px; font-size:11.5px;}
+
+  @media (max-width:860px){
+    .stage{flex-direction:column; align-items:center;}
+    .phone{width:min(392px,96vw); height:min(820px,88svh);}
+    .console{width:min(392px,96vw); min-width:0;}
+  }
+  @media (prefers-reduced-motion: reduce){ *{transition:none !important; animation:none !important;} }
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="masthead">
+    <h1>CarePilot<span class="wordmark-dot">.</span></h1>
+    <div class="sub">Prototype v0.3 · Milo now takes typed commands 🦦</div>
+  </div>
+  <p class="stage-note">New in v0.3: <b>conversation for intent, structure for data.</b> After a cancellation, type <b>"draft a message to inform her"</b> — Milo uses the thread context. Or tap <b>➕ Add a patient</b> and type one line like <b>"New patient Rahul, 34, back pain, tomorrow 5pm"</b> — Milo parses it into a confirmation card. Wrong or missing details fall back to a mini-form in chat, never an interrogation.</p>
+
+  <div class="stage">
+    <div class="phone-wrap">
+      <div class="phone" id="phone">
+        <div class="statusbar"><span id="clock">9:45 AM</span><span>▂▄▆ ⌁ ▮▮▮</span></div>
+        <div class="appbar">
+          <div class="clinic">Sunrise Spine &amp; Ortho Care</div>
+          <div class="meta" id="appbarMeta">Tuesday · Morning brief</div>
+        </div>
+        <div class="screen" id="screen"></div>
+        <div class="toast" id="toast"></div>
+        <div class="sheet-scrim" id="scrim"></div>
+        <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="Review messages">
+          <div class="sheet-head">
+            <div class="grab"></div>
+            <h3 id="sheetTitle">Review messages</h3>
+            <div class="s-sub" id="sheetSub">Nothing is sent without you. Review, then send.</div>
+            <div class="lang-toggle" role="group" aria-label="Message language">
+              <button id="langEn" class="on">English</button>
+              <button id="langMl">മലയാളം</button>
+            </div>
+          </div>
+          <div class="sheet-body" id="sheetBody"></div>
+          <div class="sheet-foot">
+            <button class="btn ghost" id="sheetClose">Close</button>
+            <button class="btn wa" id="sendAll">Send all via WhatsApp</button>
+          </div>
+        </div>
+        <div class="tabbar" id="tabbar">
+          <button class="tab" data-tab="chat"><span class="glyph" id="tabMilo"></span>Milo</button>
+          <button class="tab" data-tab="today"><span class="glyph">☰</span>Today</button>
+          <button class="tab" data-tab="requests" id="reqTab"><span class="glyph">📥</span>Requests</button>
+          <button class="tab" data-tab="schedule"><span class="glyph">📅</span>Schedule</button>
+          <button class="tab" data-tab="patients"><span class="glyph">👤</span>Patients</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="console">
+      <div class="console-card">
+        <h2>Reality Console</h2>
+        <p class="c-sub">Move through the day, then inject the chaos. Handle it the way the assistant would.</p>
+        <div class="phase-row" id="phaseRow">
+          <button class="phase on" data-phase="morning">Morning<span class="pt">9:45 AM · brief</span></button>
+          <button class="phase" data-phase="clinic">Clinic hours<span class="pt">4:12 PM · live</span></button>
+          <button class="phase" data-phase="evening">Evening<span class="pt">8:10 PM · recap</span></button>
+        </div>
+        <div class="chaos">
+          <button id="evOverrun">Session runs over<span class="k">+15 min on the chair</span></button>
+          <button id="evEmergency" class="hot">Emergency walk-in<span class="k">Salim, acute back pain</span></button>
+          <button id="evCancel">Patient cancels<span class="k">Devi drops her 5:00</span></button>
+          <button id="evMissed">Missed call<span class="k">On the clinic line</span></button>
+          <button id="evAway" class="hot">Doctor called away<span class="k">~20 min, urgent</span></button>
+          <button id="evArrive">Next patient arrives<span class="k">Walks up to the desk</span></button>
+        </div>
+        <div class="chaos-note" id="chaosNote">Chaos is available during clinic hours.</div>
+        <div class="tally">
+          <div class="cell"><div class="v" id="tRecovered">0</div><div class="l">Bookings recovered</div></div>
+          <div class="cell"><div class="v" id="tRefilled">0</div><div class="l">Slots refilled</div></div>
+          <div class="cell"><div class="v" id="tMsgs">0</div><div class="l">Patients updated</div></div>
+        </div>
+        <div class="log-h">Coordination log</div>
+        <div class="log" id="log"></div>
+        <button class="btn ghost reset" id="reset">Reset demo</button>
+      </div>
+      <div class="demo-script">
+        <div class="ds-h">Demo script — now with typed commands</div>
+        1. <b>Morning:</b> Milo's brief → tap the chips.<br>
+        2. <b>Clinic:</b> run <b>Patient cancels</b> → in chat, type <code>draft a message to inform her</code> → review Devi's rebooking draft. Then type <code>offer the slot</code>.<br>
+        3. In chat, tap <b>➕ Add a patient</b> → type <code>New patient Rahul, 34, back pain, tomorrow 5pm</code> → confirm the parsed card.<br>
+        4. <b>Emergency</b> → the doctor decides; Milo cleans up.<br>
+        5. <b>Evening:</b> recap — the tally is the pitch.
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   CarePilot v0.3 — contextual commands + parse-to-card intake
+   ========================================================= */
+const $ = (id)=>document.getElementById(id);
+
+/* ---------- Milo SVG expression system ---------- */
+function milo(expr, size){
+  size = size || 40;
+  const brown="#8B5E3C", dark="#5F3E26", cream="#D9B98F", ink="#3A2718";
+  let eyes="", brows="", mouth="", extra="";
+  const openEye=(x)=>`<circle cx="${x}" cy="46" r="6.5" fill="#fff"/><circle cx="${x}" cy="47" r="3.4" fill="${ink}"/>`;
+  const upEye=(x)=>`<circle cx="${x}" cy="46" r="6.5" fill="#fff"/><circle cx="${x-1.5}" cy="43.5" r="3.2" fill="${ink}"/>`;
+  const closedHappy=(x)=>`<path d="M${x-6} 47 Q${x} 41 ${x+6} 47" stroke="${ink}" stroke-width="2.6" fill="none" stroke-linecap="round"/>`;
+  const closedFlat=(x)=>`<path d="M${x-6} 46 Q${x} 49 ${x+6} 46" stroke="${ink}" stroke-width="2.6" fill="none" stroke-linecap="round"/>`;
+  switch(expr){
+    case "wave":
+      eyes=openEye(38)+openEye(62);
+      brows=`<path d="M32 36 Q38 32 44 35" stroke="${dark}" stroke-width="2.4" fill="none" stroke-linecap="round"/><path d="M56 35 Q62 32 68 36" stroke="${dark}" stroke-width="2.4" fill="none" stroke-linecap="round"/>`;
+      mouth=`<path d="M40 66 Q50 76 60 66" stroke="${ink}" stroke-width="2.8" fill="none" stroke-linecap="round"/>`;
+      extra=`<g transform="rotate(14 88 40)"><ellipse cx="88" cy="40" rx="7" ry="9" fill="${brown}"/><ellipse cx="88" cy="36" rx="5.5" ry="4.5" fill="${cream}"/></g>`;
+      break;
+    case "happy":
+      eyes=openEye(38)+openEye(62);
+      mouth=`<path d="M41 66 Q50 74 59 66" stroke="${ink}" stroke-width="2.8" fill="none" stroke-linecap="round"/>`;
+      break;
+    case "thinking":
+      eyes=upEye(38)+upEye(62);
+      brows=`<path d="M32 34 Q38 31 44 34" stroke="${dark}" stroke-width="2.4" fill="none" stroke-linecap="round"/><path d="M56 36 Q62 34 68 37" stroke="${dark}" stroke-width="2.4" fill="none" stroke-linecap="round"/>`;
+      mouth=`<path d="M44 68 L56 68" stroke="${ink}" stroke-width="2.6" stroke-linecap="round"/>`;
+      extra=`<circle cx="83" cy="26" r="3" fill="${dark}" opacity=".45"/><circle cx="90" cy="17" r="4" fill="${dark}" opacity=".3"/>`;
+      break;
+    case "realize":
+      eyes=`<circle cx="38" cy="46" r="7.5" fill="#fff"/><circle cx="38" cy="46" r="3.8" fill="${ink}"/><circle cx="62" cy="46" r="7.5" fill="#fff"/><circle cx="62" cy="46" r="3.8" fill="${ink}"/>`;
+      brows=`<path d="M31 32 Q38 28 45 32" stroke="${dark}" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M55 32 Q62 28 69 32" stroke="${dark}" stroke-width="2.6" fill="none" stroke-linecap="round"/>`;
+      mouth=`<ellipse cx="50" cy="68" rx="4.5" ry="5.5" fill="${ink}"/>`;
+      extra=`<path d="M85 18 L88 26 L96 28 L88 31 L85 39 L82 31 L74 28 L82 26 Z" fill="#B97D10"/>`;
+      break;
+    case "concerned":
+      eyes=openEye(38)+openEye(62);
+      brows=`<path d="M32 33 Q39 36 45 38" stroke="${dark}" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M55 38 Q61 36 68 33" stroke="${dark}" stroke-width="2.6" fill="none" stroke-linecap="round"/>`;
+      mouth=`<path d="M43 69 Q50 66 57 69" stroke="${ink}" stroke-width="2.6" fill="none" stroke-linecap="round"/>`;
+      break;
+    case "grateful":
+      eyes=closedHappy(38)+closedHappy(62);
+      mouth=`<path d="M41 65 Q50 73 59 65" stroke="${ink}" stroke-width="2.8" fill="none" stroke-linecap="round"/>`;
+      break;
+    case "sleepy":
+      eyes=closedFlat(38)+closedFlat(62);
+      mouth=`<ellipse cx="50" cy="68" rx="3.5" ry="4" fill="${ink}" opacity=".8"/>`;
+      extra=`<text x="76" y="26" font-family="sans-serif" font-weight="800" font-size="13" fill="${dark}" opacity=".6">z</text><text x="85" y="16" font-family="sans-serif" font-weight="800" font-size="17" fill="${dark}" opacity=".45">Z</text>`;
+      break;
+    default:
+      eyes=openEye(38)+openEye(62);
+      mouth=`<path d="M42 66 Q50 72 58 66" stroke="${ink}" stroke-width="2.8" fill="none" stroke-linecap="round"/>`;
+  }
+  return `<svg width="${size}" height="${size}" viewBox="0 0 100 100" aria-hidden="true">
+    <circle cx="26" cy="22" r="10" fill="${brown}"/><circle cx="26" cy="22" r="5" fill="${dark}"/>
+    <circle cx="74" cy="22" r="10" fill="${brown}"/><circle cx="74" cy="22" r="5" fill="${dark}"/>
+    <ellipse cx="50" cy="52" rx="35" ry="32" fill="${brown}"/>
+    <ellipse cx="50" cy="63" rx="21" ry="16" fill="${cream}"/>
+    <ellipse cx="50" cy="55" rx="6.5" ry="5" fill="${ink}"/>
+    <path d="M20 58 L6 54 M20 62 L7 63 M80 58 L94 54 M80 62 L93 63" stroke="${dark}" stroke-width="1.6" stroke-linecap="round" opacity=".7"/>
+    ${eyes}${brows}${mouth}${extra}
+  </svg>`;
+}
+
+/* ---------- time ---------- */
+const PHASES = { morning:{t:9*60+45, meta:"Tuesday · Morning brief"}, clinic:{t:16*60+12, meta:"Tuesday · Dr. Anil · Evening session"}, evening:{t:20*60+10, meta:"Tuesday · Day recap"} };
+function fmt(min){ let h=Math.floor(min/60), m=min%60; const ap=h>=12?"PM":"AM"; h=h%12; if(h===0)h=12; return h+":"+String(m).padStart(2,"0")+" "+ap; }
+function fmtShort(min){ let h=Math.floor(min/60), m=min%60; h=h%12; if(h===0)h=12; return h+":"+String(m).padStart(2,"0"); }
+
+/* ---------- state ---------- */
+let S;
+function freshState(){
+  return {
+    phase:"morning", tab:"chat", lang:"en", now:PHASES.morning.t,
+    doctor:{state:"pre", label:"Expected at 10:00 AM", dot:"warn"},
+    shift:0,
+    queue:[
+      {id:"ramesh", name:"Ramesh",  booked:16*60,    type:"booked", status:"session", phone:"+91 98470 11201"},
+      {id:"priya",  name:"Priya",   booked:16*60+30, type:"booked", status:"arrived", phone:"+91 97455 20988"},
+      {id:"devi",   name:"Devi",    booked:17*60,    type:"booked", status:"booked",  phone:"+91 90379 66412"},
+      {id:"faizal", name:"Faizal",  booked:17*60+30, type:"booked", status:"booked",  phone:"+91 85903 41177"},
+      {id:"meera",  name:"Meera",   booked:18*60,    type:"booked", status:"booked",  phone:"+91 94005 73350"},
+      {id:"lakshmi",name:"Lakshmi", booked:18*60+30, type:"booked", status:"booked",  phone:"+91 96335 28816"}
+    ],
+    doneEarlier:5,
+    emergencyPending:null,
+    suggestions:[],
+    drafts:[], sheetTitle:"",
+    requests:[{id:"r0", num:"+91 98470 22113", when:"Yesterday 6:40 PM", src:"Missed call · auto-reply sent", status:"contacted"}],
+    waitlist:[
+      {id:"anita",  name:"Anita",  pref:"Prefers evenings", phone:"+91 98950 12034"},
+      {id:"joseph", name:"Joseph", pref:"Any time",         phone:"+91 90723 55810"}
+    ],
+    tomorrow:[{t:"10:00 AM",n:"Vinod"},{t:"10:30 AM",n:"Sara"},{t:"11:30 AM",n:"Hameed"},{t:"5:00 PM",n:"Geetha"}],
+    tally:{recovered:0, refilled:0, msgs:0},
+    notified:{}, chat:[],
+    used:{emergency:false, cancel:false, away:false, missed:0, arrived:false},
+    log:[], _anitaDone:false, _eveningSeeded:false,
+    lastContext:null,        // "cancel-devi" after cancellation
+    intakeMode:false,
+    pendingIntake:null
+  };
+}
+
+/* ---------- templates ---------- */
+const T = {
+  delay:(p,e)=>({en:`Hi ${p.name}, the doctor is running a little late today. Your updated time is around ${fmtShort(e)}. Arriving by ${fmtShort(e)} is fine — sorry for the wait. 🙏`, ml:`നമസ്കാരം ${p.name}, ഡോക്ടർ അല്പം വൈകുന്നു. നിങ്ങളുടെ പുതിയ സമയം ഏകദേശം ${fmtShort(e)} ആണ്. ${fmtShort(e)}-ന് എത്തിയാൽ മതി. ബുദ്ധിമുട്ടിന് ക്ഷമിക്കണം. 🙏`}),
+  emergency:(p,e)=>({en:`Hi ${p.name}, an emergency case came in, so the doctor is slightly delayed. Your new time is around ${fmtShort(e)}. Sorry for the trouble. 🙏`, ml:`ക്ഷമിക്കണം ${p.name} — ഒരു എമർജൻസി കേസ് വന്നതിനാൽ ഡോക്ടർ അല്പം വൈകും. നിങ്ങളുടെ പുതിയ സമയം ഏകദേശം ${fmtShort(e)} ആണ്. 🙏`}),
+  offer:(w,t)=>({en:`Hi ${w.name}, a slot opened today at ${t}. Reply YES if you want it — first reply gets it.`, ml:`നമസ്കാരം ${w.name}, ഇന്ന് ${t}-ന് ഒരു അപ്പോയിന്റ്മെന്റ് ഒഴിവ് വന്നിട്ടുണ്ട്. വേണമെങ്കിൽ YES എന്ന് മറുപടി അയക്കൂ.`}),
+  missed:()=>({en:`Sorry we couldn't take your call — the doctor is with a patient. Send your name and a convenient day here and we'll arrange your appointment.`, ml:`നിങ്ങളുടെ കോൾ എടുക്കാൻ കഴിയാത്തതിൽ ക്ഷമിക്കണം — ഡോക്ടർ ചികിത്സയിലാണ്. പേരും സൗകര്യമുള്ള ദിവസവും ഇവിടെ അയച്ചാൽ ഞങ്ങൾ അപ്പോയിന്റ്മെന്റ് ശരിയാക്കാം.`}),
+  rebook:(name)=>({en:`Hi ${name}, sorry you couldn't make it today — hope everything is okay. Would you like to rebook? We have Thursday 5:00 PM or Saturday 11:00 AM open — reply 1 or 2 and we'll hold it for you.`, ml:`നമസ്കാരം ${name}, ഇന്ന് വരാൻ കഴിയാത്തതിൽ വിഷമമില്ല — എല്ലാം സുഖമായിരിക്കട്ടെ. വീണ്ടും ബുക്ക് ചെയ്യണോ? വ്യാഴം 5:00 PM അല്ലെങ്കിൽ ശനി 11:00 AM ഒഴിവുണ്ട് — 1 അല്ലെങ്കിൽ 2 എന്ന് മറുപടി അയക്കൂ.`})
+};
+
+/* ---------- helpers ---------- */
+function eta(p){ if(["done","cancelled","session"].includes(p.status)) return p.booked; return p.booked+S.shift; }
+function affected(){ return S.queue.filter(p=>["booked","arrived"].includes(p.status)); }
+function log(m){ S.log.unshift({t:fmt(S.now), m}); renderConsole(); }
+function tick(n){ S.now+=n; $("clock").textContent=fmt(S.now); }
+function toast(h){ const t=$("toast"); t.innerHTML=h; t.classList.add("show"); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove("show"),3400); }
+
+/* ---------- chat plumbing ---------- */
+function pushMilo(expr, text, cardHTML, opts){
+  S.chat.push({from:"milo", expr, text, card:cardHTML||null});
+  if(S.tab==="chat") renderScreen(); else if(!(opts&&opts.quiet)) flashMiloTab();
+}
+function pushUser(text){ S.chat.push({from:"user", text}); renderScreen(); }
+function pushSystem(text){ S.chat.push({from:"system", text}); if(S.tab==="chat") renderScreen(); }
+function flashMiloTab(){
+  const tab=document.querySelector('[data-tab="chat"]');
+  if(!tab) return;
+  let b=tab.querySelector(".badge");
+  if(!b){ b=document.createElement("span"); b.className="badge"; tab.appendChild(b); b.textContent="0"; }
+  b.textContent=String(parseInt(b.textContent||"0")+1);
+}
+function clearMiloBadge(){ const b=document.querySelector('[data-tab="chat"] .badge'); if(b) b.remove(); }
+
+/* ---------- chat cards ---------- */
+function scheduleCardHTML(){
+  const rows = S.queue.filter(p=>p.status!=="cancelled").slice(0,4).map(p=>`<div class="mc-row"><span class="t">${fmtShort(p.booked)}</span><span class="n">${p.name}</span></div>`).join("");
+  return `<div class="m-card"><div class="mc-title">Today · ${S.queue.length + S.doneEarlier} appointments</div>${rows}
+    <div class="mc-row"><span class="t">…</span><span class="n" style="color:var(--ink-faint)">+ ${Math.max(0,S.queue.length-4)} more</span></div>
+    <div class="mc-flag">⚠ One thing to watch: Tuesdays usually run ~20 min late after 5 PM. I've kept a buffer at 5:30 — no double-booking there, please.</div>
+    <button class="btn primary" data-act="goto-today">Open the queue</button></div>`;
+}
+function recapCardHTML(){
+  const seen = S.doneEarlier + S.queue.filter(p=>p.status==="done").length;
+  return `<div class="m-card"><div class="mc-title">Tuesday · Day recap</div>
+    <div class="mc-row"><span class="t">Seen</span><span class="n">${seen} patients</span></div>
+    <div class="mc-row"><span class="t">Updates</span><span class="n">${S.tally.msgs} sent via WhatsApp</span></div>
+    <div class="mc-row"><span class="t">Recovered</span><span class="n">${S.tally.recovered} booking${S.tally.recovered===1?"":"s"} from missed calls</span></div>
+    <div class="mc-row"><span class="t">Refilled</span><span class="n">${S.tally.refilled} cancelled slot${S.tally.refilled===1?"":"s"}</span></div>
+    <div class="mc-good">Tomorrow has ${S.tomorrow.length} bookings. With your OK at 9 AM, I'll draft the morning confirmations.</div></div>`;
+}
+function intakeCardHTML(d){
+  const row=(l,v)=>`<div class="mc-row"><span class="t">${l}</span><span class="n ${v? "":"missing"}">${v||"missing"}</span></div>`;
+  return `<div class="m-card"><div class="mc-title">New booking — please confirm</div>
+    ${row("Name",d.name)}${row("Age",d.age)}${row("Type",d.isNew)}${row("Concern",d.concern)}${row("When",(d.day||"")+(d.time? " "+d.time:""))}
+    <button class="btn primary" data-act="intake-confirm">Confirm &amp; book</button>
+    <button class="btn ghost" data-act="intake-edit">Fix details</button></div>`;
+}
+function intakeFormHTML(d){
+  d=d||{};
+  return `<div class="m-card"><div class="mc-title">Quick add — patient</div>
+    <div class="mc-form">
+      <label>Name</label><input id="fName" value="${d.name||""}" placeholder="Patient name">
+      <label>Age</label><input id="fAge" value="${d.age||""}" placeholder="e.g. 34" inputmode="numeric">
+      <label>Concern</label><input id="fConcern" value="${d.concern||""}" placeholder="e.g. back pain">
+      <label>When</label><input id="fWhen" value="${(d.day||"")+(d.time? " "+d.time:"")}" placeholder="e.g. Tomorrow 5 PM">
+    </div>
+    <button class="btn primary" data-act="intake-save">Save &amp; book</button></div>`;
+}
+
+function seedMorning(){ S.chat=[]; pushMilo("wave","Good morning! ☀️ Ready when you are — ask me anything, or add a patient in one line.", null, {quiet:true}); }
+function seedClinic(){ pushMilo("happy","Clinic hours — I'm watching the queue now. If anything drifts, you'll see a card on <b>Today</b> and a note from me here.", null, {quiet:true}); }
+function seedEvening(){
+  if(S._eveningSeeded) return; S._eveningSeeded=true;
+  pushMilo("grateful","That's a wrap for Tuesday. Here's how the day went:", recapCardHTML(), {quiet:true});
+  pushMilo("sleepy","Rest well. I'll have the morning brief ready at 9:45. 🌙", null, {quiet:true});
+}
+
+const CHIPS = {
+  morning:[{q:"What's the plan today?",a:"plan"},{q:"Any risks?",a:"risks"},{q:"➕ Add a patient",a:"intake"},{q:"New requests?",a:"requests"}],
+  clinic:[{q:"How are we doing?",a:"status"},{q:"➕ Add a patient",a:"intake"},{q:"New requests?",a:"requests"}],
+  evening:[{q:"Show today's recap",a:"recap"},{q:"What's tomorrow like?",a:"tomorrow"}]
+};
+
+/* ---------- intake parsing ---------- */
+function parseIntake(t){
+  const res={};
+  let rest=t;
+  const timeM=rest.match(/\b(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/i);
+  if(timeM){ res.time=(timeM[1]+(timeM[2]? ":"+timeM[2].slice(1):":00")).replace(":00",":00")+" "+timeM[3].toUpperCase(); res.time=timeM[1]+(timeM[2]||":00")+" "+timeM[3].toUpperCase(); rest=rest.replace(timeM[0],""); }
+  const dayM=rest.match(/\b(today|tomorrow|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i);
+  if(dayM){ res.day=dayM[1][0].toUpperCase()+dayM[1].slice(1).toLowerCase(); rest=rest.replace(dayM[0],""); }
+  const ageM=rest.match(/\b(\d{1,3})\b/);
+  if(ageM) res.age=ageM[1];
+  res.isNew=/\bexist/i.test(t)? "Existing" : "New";
+  const concM=t.match(/([a-z]+[\s-]?(?:pain|ache|injury|stiffness|sprain|therapy|checkup|review))/i);
+  if(concM) res.concern=concM[1].trim();
+  const cleaned=rest.replace(/\b(new|existing)\b/ig," ").replace(/\bpatients?\b/ig," ");
+  const nameM=cleaned.match(/\b([A-Z][a-z]{2,})\b/);
+  if(nameM && !["Today","Tomorrow","Thursday","Monday","Tuesday","Wednesday","Friday","Saturday","Sunday"].includes(nameM[1])) res.name=nameM[1];
+  return res;
+}
+function startIntake(){
+  S.intakeMode=true;
+  pushMilo("happy",`Sure — tell me in <b>one line</b>: name, age, new or existing, concern, and when.<br><span style="color:var(--ink-faint)">e.g. “New patient Rahul, 34, back pain, tomorrow 5pm”</span>`);
+}
+function handleIntakeText(text){
+  S.intakeMode=false;
+  const d=parseIntake(text);
+  S.pendingIntake=d;
+  const got=[d.name,d.age,d.concern,(d.day||d.time)].filter(Boolean).length;
+  if(got>=2){
+    pushMilo("realize","Here's what I understood — check it before I book:", intakeCardHTML(d));
+  } else {
+    pushMilo("thinking","I couldn't read that confidently, so let's not guess — here's a quick form instead:", intakeFormHTML(d));
+  }
+}
+function confirmIntake(d){
+  S.pendingIntake=null;
+  const when=(d.day||"Tomorrow")+(d.time? " "+d.time:"");
+  if((d.day||"Tomorrow")==="Today"){
+    S.queue.push({id:"nx"+Date.now(), name:d.name||"New patient", booked:19*60, type:"booked", status:"booked", phone:"—"});
+  } else {
+    S.tomorrow.push({t:d.time||"11:00 AM", n:(d.name||"New patient")+(d.isNew==="New"? " (new)":"")});
+  }
+  pushMilo("grateful",`Done — <b>${d.name||"the patient"}</b> is booked for <b>${when}</b>. I've added ${d.name? "him to Patients":"the record"} and reserved the slot. ✓`);
+  toast(`<b>${d.name||"Patient"} booked</b> — ${when}.`);
+  log(`<b>Booking added via chat</b> · ${d.name||"patient"} · ${when}`);
+  renderConsole();
+}
+
+/* ---------- free-text router ---------- */
+function handleFreeText(text){
+  const t=text.toLowerCase();
+  if(S.intakeMode){ handleIntakeText(text); return; }
+  if(/(add|register|enter)\b.*patient|new patient/i.test(t)){ startIntake(); return; }
+  if(/\b(draft|inform|message|tell)\b/.test(t) && S.lastContext==="cancel-devi"){
+    pushMilo("happy","On it — here's a rebooking message for <b>Devi</b>. Review and send:");
+    setTimeout(()=>openSheet("Message for Devi","Drafted from context — you said “inform her”, and the thread says that's Devi.",[{to:"Devi", phone:"+91 90379 66412", kindLabel:"rebooking message", ...T.rebook("Devi"), sent:false}]),400);
+    return;
+  }
+  if(/offer/.test(t) && /slot/.test(t) && S.suggestions.some(g=>g.offer)){ offerSlot(); return; }
+  if(/plan|schedule/.test(t)){ chatAnswer("plan"); return; }
+  if(/risk/.test(t)){ chatAnswer("risks"); return; }
+  if(/request/.test(t)){ chatAnswer("requests"); return; }
+  if(/how|status|doing/.test(t)){ chatAnswer("status"); return; }
+  if(/recap|summary/.test(t)){ chatAnswer("recap"); return; }
+  if(/tomorrow/.test(t)){ chatAnswer("tomorrow"); return; }
+  pushMilo("thinking","I'm still learning free text in this prototype. I understood commands like <b>“draft a message to inform her”</b> (after an event), <b>“offer the slot”</b>, or <b>“add a new patient”</b> — or use the chips below. 👇");
+}
+
+function chatAnswer(kind){
+  if(kind==="plan"){ pushMilo("happy",`We have <b>${S.queue.length + S.doneEarlier} appointments</b> today — first at 10:00, last at 6:30. Here's the shape of the day:`, scheduleCardHTML()); }
+  else if(kind==="risks"){ pushMilo("thinking","Two things on my radar: <b>Meera is a first visit</b> (those tend to run long — I padded her slot), and the <b>5–7 PM stretch is fully booked</b> with no gaps. If an emergency walks in then, we'll have to shift people. I'll draft the messages the moment it happens."); }
+  else if(kind==="intake"){ startIntake(); }
+  else if(kind==="requests"){
+    const n=S.requests.filter(r=>r.status!=="booked").length;
+    pushMilo(n>0?"realize":"happy", n>0? `There ${n===1?"is":"are"} <b>${n} open booking request${n===1?"":"s"}</b> waiting — from missed calls the clinic couldn't answer.` : "No open requests right now. Missed calls will land there automatically.", n>0? `<div class="m-card"><button class="btn primary" data-act="goto-requests">Open requests</button></div>`:null);
+  }
+  else if(kind==="status"){
+    const shifted = S.shift>0? `We're running <b>+${S.shift} min</b> — affected patients ${Object.keys(S.notified).length? "have been updated":"haven't been updated yet"}.` : "We're <b>on time</b>. Nice and steady.";
+    pushMilo(S.shift>0?"concerned":"happy", `${S.queue.filter(p=>["booked","arrived"].includes(p.status)).length} patients still to come. ${shifted}`);
+  }
+  else if(kind==="recap"){ pushMilo("grateful","Here's the day:", recapCardHTML()); }
+  else if(kind==="tomorrow"){ pushMilo("happy",`Tomorrow has <b>${S.tomorrow.length} bookings</b>, first at 10:00 AM, one free slot at 12:00. Want me to offer that to the waitlist in the morning?`); }
+}
+
+/* ---------- rendering ---------- */
+function render(){ renderScreen(); renderConsole(); renderTabs(); $("appbarMeta").textContent = PHASES[S.phase].meta; }
+function renderTabs(){
+  document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active", b.dataset.tab===S.tab));
+  const newReq=S.requests.filter(r=>r.status==="new").length;
+  let badge=$("reqTab").querySelector(".badge");
+  if(newReq>0){ if(!badge){ badge=document.createElement("span"); badge.className="badge"; $("reqTab").appendChild(badge);} badge.textContent=newReq; }
+  else if(badge) badge.remove();
+}
+function chip(c,t){ return `<span class="chip ${c}">${t}</span>`; }
+
+function renderScreen(){
+  const sc=$("screen");
+  if(S.tab==="chat") sc.innerHTML=chatHTML();
+  else if(S.tab==="today") sc.innerHTML=todayHTML();
+  else if(S.tab==="requests") sc.innerHTML=requestsHTML();
+  else if(S.tab==="schedule") sc.innerHTML=scheduleHTML();
+  else sc.innerHTML=patientsHTML();
+  bindScreen();
+  if(S.tab==="chat"){ sc.scrollTop=sc.scrollHeight; }
+}
+
+function chatHTML(){
+  let msgs = S.chat.map(m=>{
+    if(m.from==="user") return `<div class="msg user"><div class="m-avatar none"></div><div class="m-col"><div class="m-bubble">${m.text}</div></div></div>`;
+    if(m.from==="system") return `<div class="msg system"><div class="m-avatar none"></div><div class="m-col"><div class="m-bubble">${m.text}</div></div></div>`;
+    return `<div class="msg"><div class="m-avatar">${milo(m.expr,36)}</div><div class="m-col"><div class="m-name">MILO · AI COORDINATOR</div><div class="m-bubble">${m.text}</div>${m.card||""}</div></div>`;
+  }).join("");
+  const chips = CHIPS[S.phase].map(c=>`<button class="q-chip" data-act="chip" data-chip="${c.a}" data-q="${c.q}">${c.q}</button>`).join("");
+  return `<div class="chat-pad">${msgs}</div>
+    <div class="chat-input-bar">
+      <div class="chip-row">${chips}</div>
+      <div class="input-row">
+        <input id="chatInput" type="text" placeholder="Message Milo…" aria-label="Message Milo">
+        <button class="send" data-act="send-chat">➤</button>
+      </div>
+    </div>`;
+}
+
+function todayHTML(){
+  const d=S.doctor;
+  let html=`<div class="pad">
+    <div class="doc-banner"><span class="doc-dot ${d.dot}"></span><div style="flex:1"><div class="who">Dr. Anil</div><div class="state">${d.label}</div></div></div>
+    <div class="day-strip">
+      <span class="day-chip"><b>${S.doneEarlier}</b> seen</span>
+      <span class="day-chip"><b>${S.queue.filter(p=>["booked","arrived","session"].includes(p.status)).length}</b> in queue</span>
+      <span class="day-chip">running <b>${S.shift>0? "+"+S.shift+" min":"on time"}</b></span>
+    </div>`;
+  if(S.emergencyPending){
+    html+=`<div class="sugg alert">
+      <div class="s-head"><div class="s-title">🚨 Emergency walk-in — ${S.emergencyPending.name}</div></div>
+      <div class="s-body">Acute lower-back pain, asking to be seen now. <b>The doctor decides</b> after a quick check — CarePilot handles the queue and messages either way.</div>
+      <div class="s-actions"><button class="btn danger" data-act="em-now">Doctor says: take now</button><button class="btn ghost" data-act="em-queue">Add to end of queue</button></div>
+    </div>`;
+  }
+  for(const g of S.suggestions){
+    html+=`<div class="sugg ${g.kind}">
+      <div class="s-head"><div class="s-milo">${milo(g.expr||"realize",30)}</div><div class="s-title">${g.title}</div></div>
+      <div class="s-body">${g.body}</div>
+      <div class="s-actions">
+        ${g.drafts&&g.drafts.length? `<button class="btn primary" data-act="review" data-sid="${g.id}">Review ${g.drafts.length} message${g.drafts.length>1?"s":""}</button>`:""}
+        ${g.offer? `<button class="btn primary" data-act="offer" data-sid="${g.id}">Offer to waitlist</button>`:""}
+        <button class="btn ghost" data-act="dismiss" data-sid="${g.id}">Dismiss</button>
+      </div></div>`;
+  }
+  html+=`<div class="q-head"><h2>Queue</h2><span class="done-note">${fmt(S.now)} · earlier visits collapsed</span></div>`;
+  S.queue.forEach((p,i)=>{
+    const e=eta(p); const shifted=e!==p.booked&&["booked","arrived"].includes(p.status);
+    const noteTime=S.notified[p.id];
+    const cls="qrow"+(p.type==="emergency"?" emergency":"")+(p.status==="cancelled"?" cancelled":"");
+    let timeHtml;
+    if(p.status==="cancelled") timeHtml=`<span class="strike">${fmtShort(p.booked)}</span>`;
+    else if(p.type==="emergency") timeHtml=`now`;
+    else if(shifted) timeHtml=`<span class="strike">${fmtShort(p.booked)}</span> → <span class="eta-shift">~${fmtShort(e)}</span>`;
+    else timeHtml=fmtShort(p.booked);
+    let sc="";
+    if(p.status==="session") sc=chip("session","IN SESSION");
+    else if(p.status==="arrived") sc=chip("arrived","ARRIVED");
+    else if(p.status==="cancelled") sc=chip("cancelled","CANCELLED");
+    else if(p.type==="emergency") sc=chip("emergency","EMERGENCY");
+    else if(p.type==="walkin") sc=chip("walkin","WALK-IN");
+    else sc=chip("booked","BOOKED");
+    let acts="";
+    if(p.status==="arrived"&&!S.queue.some(q=>q.status==="session")) acts=`<button class="mini go" data-act="start" data-pid="${p.id}">Start session</button>`;
+    else if(p.status==="session") acts=`<button class="mini go" data-act="end" data-pid="${p.id}">End session</button>`;
+    else if(p.status==="booked") acts=`<button class="mini" data-act="arrived-mark" data-pid="${p.id}">Mark arrived</button>`;
+    html+=`<div class="${cls}"><div class="r-top"><span class="pos">${p.status==="cancelled"?"–":i+1}</span><span class="name">${p.name}</span><span class="times">${timeHtml}</span></div>
+      <div class="chips">${sc}${noteTime? chip("notified","✓ updated "+noteTime):""}</div>
+      ${acts?`<div class="rowacts">${acts}</div>`:""}</div>`;
+  });
+  html+=`</div>`;
+  return html;
+}
+
+function requestsHTML(){
+  let html=`<div class="pad"><div class="q-head" style="margin-top:2px"><h2>Booking requests</h2></div>
+    <p class="section-note">Calls the clinic couldn't answer land here instead of disappearing.</p>`;
+  if(S.requests.length===0) html+=`<div class="empty"><div class="em-milo">${milo("sleepy",74)}</div>No requests right now.<br>Missed calls will appear here automatically.</div>`;
+  for(const r of S.requests){
+    html+=`<div class="req"><div class="r1"><span class="num">${r.num}</span><span class="when">${r.when}</span></div><div class="src">${r.src}</div>
+      <div class="stat">
+        ${r.status==="new"? `<button class="btn wa" data-act="req-reply" data-rid="${r.id}">Send WhatsApp reply</button>`:""}
+        ${r.status==="contacted"? `<button class="btn primary" data-act="req-book" data-rid="${r.id}">Book appointment</button> <span style="font-size:11.5px;color:var(--ink-faint);margin-left:6px">Auto-reply sent ✓</span>`:""}
+        ${r.status==="booked"? `<span class="sent-mark">✓ Booked — tomorrow ${r.slot||"11:00 AM"}</span>`:""}
+      </div></div>`;
+  }
+  return html+`</div>`;
+}
+
+function scheduleHTML(){
+  let html=`<div class="pad"><div class="q-head" style="margin-top:2px"><h2>Tomorrow · Wednesday</h2></div>`;
+  for(const s of S.tomorrow) html+=`<div class="slotrow"><span class="t">${s.t}</span><span class="n">${s.n}</span></div>`;
+  html+=`<div class="slotrow freeslot"><span class="t">12:00 PM</span><span class="n">Free slot</span></div>
+    <div class="q-head"><h2>Waitlist</h2></div>
+    <p class="section-note">When a cancellation happens, Milo suggests the best match from here.</p>`;
+  for(const w of S.waitlist) html+=`<div class="wl-card"><div><div class="n">${w.name}</div><div class="p">${w.pref}</div></div></div>`;
+  if(S.waitlist.length===0) html+=`<div class="empty">Waitlist is empty.</div>`;
+  return html+`</div>`;
+}
+
+function patientsHTML(){
+  const ppl=[{n:"Ramesh",d:"Last visit today · 6 visits"},{n:"Priya",d:"Last visit 12 Jul · new treatment plan"},{n:"Devi",d:"Last visit 5 Jul · monthly review"},{n:"Anita",d:"On waitlist · prefers evenings"},{n:"Faizal",d:"Last visit 28 Jun"},{n:"Meera",d:"First visit today"},{n:"Lakshmi",d:"Last visit 14 Jul"}];
+  let html=`<div class="pad"><div class="q-head" style="margin-top:2px"><h2>Patients</h2></div>`;
+  for(const p of ppl) html+=`<div class="wl-card"><div><div class="n">${p.n}</div><div class="p">${p.d}</div></div></div>`;
+  return html+`</div>`;
+}
+
+/* ---------- console ---------- */
+function renderConsole(){
+  $("tRecovered").textContent=S.tally.recovered;
+  $("tRefilled").textContent=S.tally.refilled;
+  $("tMsgs").textContent=S.tally.msgs;
+  $("log").innerHTML=S.log.map(e=>`<div class="entry"><span class="tt">${e.t}</span>${e.m}</div>`).join("")||`<div class="entry" style="color:var(--ink-faint)">Quiet so far.</div>`;
+  const inClinic=S.phase==="clinic";
+  $("evOverrun").disabled=!inClinic;
+  $("evEmergency").disabled=!inClinic||S.used.emergency;
+  $("evCancel").disabled=!inClinic||S.used.cancel;
+  $("evMissed").disabled=!inClinic;
+  $("evAway").disabled=!inClinic||S.used.away;
+  $("evArrive").disabled=!inClinic||S.used.arrived;
+  $("chaosNote").textContent=inClinic? "Handle each event in the app — Today shows the cards, Milo narrates in chat. Try typing commands." : "Chaos is available during clinic hours.";
+  document.querySelectorAll(".phase").forEach(b=>b.classList.toggle("on", b.dataset.phase===S.phase));
+}
+
+/* ---------- sheet ---------- */
+function openSheet(title,sub,drafts){
+  S.sheetTitle=title; S.drafts=drafts;
+  $("sheetTitle").textContent=title;
+  $("sheetSub").textContent=sub||"Nothing is sent without you. Review, then send.";
+  renderSheet();
+  $("scrim").classList.add("open"); $("sheet").classList.add("open");
+}
+function renderSheet(){
+  const body=$("sheetBody");
+  body.innerHTML=S.drafts.map((d,i)=>`
+    <div class="draft"><div class="d-to"><span>To: ${d.to}${d.phone? " · "+d.phone:""}</span>${d.sent?`<span class="sent-mark">Sent ✓</span>`:""}</div>
+      <div class="d-msg ${S.lang==="ml"?"ml":""}">${S.lang==="ml"? d.ml:d.en}</div>
+      ${d.sent?"":`<div class="d-acts"><button class="btn wa" data-di="${i}" style="font-size:12px;padding:7px 12px">Send via WhatsApp</button></div>`}
+    </div>`).join("");
+  body.querySelectorAll("button[data-di]").forEach(b=>b.addEventListener("click",()=>sendDraft(parseInt(b.dataset.di))));
+  const rem=S.drafts.filter(d=>!d.sent).length;
+  $("sendAll").disabled=rem===0;
+  $("sendAll").textContent=rem>0?`Send all via WhatsApp (${rem})`:"All sent ✓";
+}
+function sendDraft(i){
+  const d=S.drafts[i]; if(d.sent) return;
+  d.sent=true; S.tally.msgs++;
+  if(d.pid) S.notified[d.pid]=fmt(S.now);
+  if(d.onSent) d.onSent();
+  log(`WhatsApp → <b>${d.to}</b>: ${d.kindLabel||"update"} sent`);
+  renderSheet(); if(S.tab!=="chat") renderScreen(); renderConsole();
+}
+function closeSheet(){ $("scrim").classList.remove("open"); $("sheet").classList.remove("open"); }
+
+/* ---------- flows ---------- */
+function addSuggestion(g){
+  S.suggestions=S.suggestions.filter(x=>x.id!==g.id);
+  S.suggestions.unshift(g);
+  S.tab="today"; render();
+}
+function evOverrun(){
+  tick(3); S.shift+=15;
+  const aff=affected();
+  const drafts=aff.slice(0,3).map(p=>({to:p.name, phone:p.phone, pid:p.id, kindLabel:"delay update", ...T.delay(p,eta(p)), sent:false}));
+  addSuggestion({id:"overrun"+Date.now(), kind:"warn", expr:"concerned", title:"Ramesh's session is running ~15 min over", body:`${aff.length} upcoming patients are affected. ETAs recomputed (with buffer). I've drafted updates for the next ${drafts.length} — review and send.`, drafts});
+  pushMilo("concerned",`Heads-up — Ramesh's session is running <b>~15 min over</b>. I shifted the queue and drafted updates for the next ${drafts.length} patients. They're on <b>Today</b> waiting for your OK.`);
+  log(`<b>Overrun detected</b> · queue +15 min · ${drafts.length} updates drafted`);
+}
+function evEmergency(){
+  S.used.emergency=true; tick(2);
+  S.emergencyPending={name:"Salim", phone:"+91 95672 30419"};
+  pushSystem(`🚨 <b>Emergency walk-in — Salim</b>, acute back pain. Waiting for the doctor's decision on <b>Today</b>.`);
+  S.tab="today"; render();
+  log(`<b>Emergency walk-in</b> · Salim · waiting for the doctor's call`);
+}
+function emergencyDecide(now){
+  const em={id:"salim", name:S.emergencyPending.name, booked:S.now, type:"emergency", status: now?"arrived":"booked", phone:S.emergencyPending.phone};
+  S.emergencyPending=null;
+  if(now){
+    const si=S.queue.findIndex(p=>p.status==="session");
+    S.queue.splice(si+1,0,em); S.shift+=30;
+    const aff=affected().filter(p=>p.id!=="salim");
+    const drafts=aff.slice(0,3).map(p=>({to:p.name, phone:p.phone, pid:p.id, kindLabel:"emergency delay note", ...T.emergency(p,eta(p)), sent:false}));
+    addSuggestion({id:"em-after", kind:"alert", expr:"concerned", title:"Salim inserted next — queue shifted ~30 min", body:"The doctor's call, CarePilot's cleanup: downstream ETAs recomputed, apology updates drafted for the displaced patients.", drafts});
+    pushMilo("concerned",`The doctor is taking Salim now. I've recomputed the queue (+30 min) and drafted apologies for the displaced patients — ready on <b>Today</b>.`);
+    log(`<b>Doctor's decision:</b> take Salim now · +30 min · apologies drafted`);
+  } else {
+    em.booked=19*60; em.type="walkin";
+    S.queue.push(em); render();
+    pushMilo("happy",`Salim will wait — I've added him at the end of the queue for ~7:00.`);
+    log(`<b>Doctor's decision:</b> Salim waits · end of queue`);
+  }
+}
+function evCancel(){
+  S.used.cancel=true; tick(2);
+  const devi=S.queue.find(p=>p.id==="devi"); devi.status="cancelled";
+  S.lastContext="cancel-devi";
+  addSuggestion({id:"refill", kind:"info", expr:"realize", title:"Devi cancelled her 5:00 slot", body:`That's an empty chair worth money. Best waitlist matches: <b>Anita</b> (prefers evenings) and <b>Joseph</b>. Offer it — first YES gets the slot.`, offer:true});
+  pushMilo("realize",`Devi cancelled her 5:00. Good news: <b>Anita</b> on the waitlist prefers evenings. Want me to offer her the slot? It's on <b>Today</b> — or just tell me here (try <i>"offer the slot"</i> or <i>"draft a message to inform her"</i>).`);
+  log(`<b>Cancellation</b> · Devi 5:00 PM · waitlist matches found`);
+}
+function offerSlot(){
+  const drafts=S.waitlist.map(w=>({to:w.name, phone:w.phone, kindLabel:"slot offer", ...T.offer(w,"5:00 PM"), sent:false, onSent: w.id==="anita"? ()=>setTimeout(anitaSaysYes,2600):null}));
+  openSheet("Offer the 5:00 slot","Sent to top matches — first YES gets it.",drafts);
+}
+function anitaSaysYes(){
+  if(S._anitaDone) return; S._anitaDone=true;
+  const devi=S.queue.find(p=>p.id==="devi"); const idx=S.queue.indexOf(devi);
+  S.queue.splice(idx+1,0,{id:"anita", name:"Anita", booked:17*60, type:"booked", status:"booked", phone:"+91 98950 12034"});
+  S.waitlist=S.waitlist.filter(w=>w.id!=="anita");
+  S.tally.refilled++;
+  S.suggestions=S.suggestions.filter(g=>g.id!=="refill");
+  S.notified["anita"]=fmt(S.now);
+  toast(`<b>Anita replied YES</b> — 5:00 slot refilled. Confirmation sent.`);
+  pushMilo("happy",`Anita said <b>YES</b> — the 5:00 slot is refilled. Empty chair avoided. 👍`);
+  log(`<b>Slot refilled</b> · Anita took Devi's 5:00`);
+  render();
+}
+function evMissed(){
+  S.used.missed++; tick(1);
+  const nums=["+91 96450 77821","+91 98460 33290","+91 90613 48755"];
+  const r={id:"rm"+S.used.missed, num:nums[(S.used.missed-1)%3], when:fmt(S.now), src:"Missed call · forwarded from clinic line", status:"new"};
+  S.requests.unshift(r); render();
+  toast(`<b>Missed call captured</b> — check Requests.`);
+  pushMilo("realize",`A call just went unanswered (${r.num}). I've captured it in <b>Requests</b> — send the WhatsApp reply when you have a moment, and it becomes a booking instead of a lost patient.`);
+  log(`<b>Missed call</b> · ${r.num} · captured`);
+}
+function reqReply(rid){
+  const r=S.requests.find(x=>x.id===rid);
+  openSheet("Reply to missed call","The capture message — turns a lost call into a booking request.",[{to:"Caller", phone:r.num, kindLabel:"missed-call capture", ...T.missed(), sent:false, onSent:()=>{ r.status="contacted"; r.src="Missed call · auto-reply sent"; }}]);
+}
+function reqBook(rid){
+  const r=S.requests.find(x=>x.id===rid);
+  r.status="booked"; r.slot="11:00 AM"; S.tally.recovered++;
+  S.tomorrow.splice(2,0,{t:"11:00 AM", n:"New patient"});
+  toast(`<b>Booking recovered</b> — tomorrow 11:00 AM.`);
+  pushMilo("happy",`Booked! That missed call is now a <b>confirmed appointment tomorrow at 11:00</b>. That's recovered revenue. 🙌`);
+  log(`<b>Booking recovered</b> · ${r.num} → tomorrow 11:00 AM`);
+  render();
+}
+function evAway(){
+  S.used.away=true; tick(2);
+  S.doctor={state:"away", label:"Called away · back ~"+fmtShort(S.now+20), dot:"away"};
+  S.shift+=20;
+  const aff=affected();
+  const drafts=aff.slice(0,3).map(p=>({to:p.name, phone:p.phone, pid:p.id, kindLabel:"delay update", ...T.delay(p,eta(p)), sent:false}));
+  addSuggestion({id:"away", kind:"alert", expr:"concerned", title:"Dr. Anil called away (~20 min)", body:"Everyone still in the queue shifts. Updates drafted so nobody sits in the waiting room wondering.", drafts});
+  pushMilo("concerned",`Dr. Anil has been called away for ~20 minutes. Queue shifted; updates drafted on <b>Today</b> so nobody waits without knowing why.`);
+  log(`<b>Doctor called away</b> · ~20 min · updates drafted`);
+  setTimeout(()=>{ if(S.doctor.state==="away"){ S.doctor={state:"session", label:"Back · in session", dot:"ok"}; if(S.tab==="today") renderScreen(); pushMilo("happy","Dr. Anil is back — session resumed."); log(`<b>Doctor back</b>`);} },9000);
+}
+function evArrive(){
+  S.used.arrived=true; tick(1);
+  const next=S.queue.find(p=>p.status==="booked");
+  if(next) next.status="arrived";
+  render();
+  toast(`<b>${next? next.name:"Patient"} arrived</b> — marked in one tap.`);
+  log(`<b>Arrival</b> · ${next? next.name:"patient"} marked arrived`);
+}
+
+/* ---------- phases ---------- */
+function setPhase(p){
+  S.phase=p; S.now=PHASES[p].t; $("clock").textContent=fmt(S.now);
+  if(p==="morning"){ S.tab="chat"; if(S.chat.length===0) seedMorning(); }
+  if(p==="clinic"){ S.tab="today"; S.doctor={state:"session", label:"In session with Ramesh", dot:"ok"}; seedClinic(); }
+  if(p==="evening"){ S.tab="chat"; S.doctor={state:"done", label:"Clinic closed", dot:"warn"}; seedEvening(); }
+  clearMiloBadge(); render();
+}
+
+/* ---------- binding ---------- */
+function submitChat(){
+  const inp=$("chatInput");
+  if(inp&&inp.value.trim()){ const v=inp.value.trim(); pushUser(v); setTimeout(()=>handleFreeText(v),400); }
+}
+function bindScreen(){
+  document.querySelectorAll("#screen [data-act]").forEach(el=>{
+    el.addEventListener("click",()=>{
+      const act=el.dataset.act;
+      if(act==="chip"){ pushUser(el.dataset.q); const k=el.dataset.chip; setTimeout(()=>chatAnswer(k),350); }
+      if(act==="send-chat") submitChat();
+      if(act==="goto-today"){ S.tab="today"; render(); }
+      if(act==="goto-requests"){ S.tab="requests"; render(); }
+      if(act==="review"){ const g=S.suggestions.find(x=>x.id===el.dataset.sid); openSheet(g.title,"Nothing is sent without you. Review, then send.",g.drafts); }
+      if(act==="offer") offerSlot();
+      if(act==="dismiss"){ S.suggestions=S.suggestions.filter(x=>x.id!==el.dataset.sid); render(); }
+      if(act==="em-now") emergencyDecide(true);
+      if(act==="em-queue") emergencyDecide(false);
+      if(act==="arrived-mark"){ const p=S.queue.find(x=>x.id===el.dataset.pid); p.status="arrived"; render(); }
+      if(act==="start"){ S.queue.forEach(x=>{ if(x.status==="session") x.status="done"; }); const p=S.queue.find(x=>x.id===el.dataset.pid); p.status="session"; S.doctor={state:"session", label:"In session with "+p.name, dot:"ok"}; log(`<b>Session started</b> · ${p.name}`); render(); }
+      if(act==="end"){ const p=S.queue.find(x=>x.id===el.dataset.pid); S.queue=S.queue.filter(x=>x.id!==p.id); S.doneEarlier++; S.doctor={state:"idle", label:"Between patients", dot:"warn"}; log(`<b>Session ended</b> · ${p.name} · duration logged for learning`); render(); }
+      if(act==="req-reply") reqReply(el.dataset.rid);
+      if(act==="req-book") reqBook(el.dataset.rid);
+      if(act==="intake-confirm"){ confirmIntake(S.pendingIntake||{}); renderScreen(); }
+      if(act==="intake-edit"){ pushMilo("happy","No problem — fix anything here:", intakeFormHTML(S.pendingIntake||{})); }
+      if(act==="intake-save"){
+        const d={ name:($("fName")||{}).value||"", age:($("fAge")||{}).value||"", concern:($("fConcern")||{}).value||"", isNew:"New" };
+        const whenV=(($("fWhen")||{}).value||"").trim();
+        const dm=whenV.match(/today|tomorrow|monday|tuesday|wednesday|thursday|friday|saturday|sunday/i);
+        d.day=dm? dm[0][0].toUpperCase()+dm[0].slice(1).toLowerCase():"Tomorrow";
+        const tm=whenV.match(/\d{1,2}(:\d{2})?\s*(am|pm)/i);
+        d.time=tm? tm[0].toUpperCase():null;
+        confirmIntake(d); renderScreen();
+      }
+    });
+  });
+  const inp=$("chatInput");
+  if(inp){ inp.addEventListener("keydown",(e)=>{ if(e.key==="Enter") submitChat(); }); }
+}
+
+document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{ S.tab=b.dataset.tab; if(b.dataset.tab==="chat") clearMiloBadge(); render(); }));
+document.querySelectorAll(".phase").forEach(b=>b.addEventListener("click",()=>setPhase(b.dataset.phase)));
+$("evOverrun").addEventListener("click",evOverrun);
+$("evEmergency").addEventListener("click",evEmergency);
+$("evCancel").addEventListener("click",evCancel);
+$("evMissed").addEventListener("click",evMissed);
+$("evAway").addEventListener("click",evAway);
+$("evArrive").addEventListener("click",evArrive);
+$("scrim").addEventListener("click",closeSheet);
+$("sheetClose").addEventListener("click",closeSheet);
+$("sendAll").addEventListener("click",()=>{ S.drafts.forEach((d,i)=>{ if(!d.sent) sendDraft(i); }); });
+$("langEn").addEventListener("click",()=>{ S.lang="en"; $("langEn").classList.add("on"); $("langMl").classList.remove("on"); renderSheet(); });
+$("langMl").addEventListener("click",()=>{ S.lang="ml"; $("langMl").classList.add("on"); $("langEn").classList.remove("on"); renderSheet(); });
+$("reset").addEventListener("click",()=>{ S=freshState(); closeSheet(); setPhase("morning"); });
+
+/* ---------- boot ---------- */
+$("tabMilo").innerHTML=milo("happy",22);
+S=freshState();
+setPhase("morning");
+</script>
+</body>
+</html>
