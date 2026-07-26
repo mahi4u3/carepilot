@@ -56,31 +56,38 @@ miloBtn.addEventListener('click', () => {
 
 
 
-// --- Home Screen Interactions (Milo Suggestion Card) ---
-const suggestionCard = document.querySelector('.milo-suggestion-card');
-const dismissBtn = document.getElementById('milo-dismiss');
-const actionBtn = document.getElementById('milo-action-btn');
+// --- Home Screen Interactions & Quick Actions ---
+const quickActionCards = document.querySelectorAll('.quick-action-card');
+const attentionItems = document.querySelectorAll('.attention-item');
 
-if (dismissBtn && suggestionCard) {
-  dismissBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    suggestionCard.style.transition = 'all 0.3s ease';
-    suggestionCard.style.opacity = '0';
-    suggestionCard.style.transform = 'scale(0.95)';
-    setTimeout(() => {
-      suggestionCard.style.display = 'none';
-    }, 300);
+quickActionCards.forEach(card => {
+  card.addEventListener('click', () => {
+    const label = card.querySelector('.qa-label')?.innerText.replace('\n', ' ');
+    if (label.includes('Search')) {
+      setView('patients');
+      const searchInput = document.querySelector('.search-input');
+      if (searchInput) searchInput.focus();
+    } else if (label.includes('Check In') || label.includes('Walk-in')) {
+      setView('patients');
+    } else if (label.includes('Appointment')) {
+      setView('calendar');
+    } else if (label.includes('Call')) {
+      setView('milo');
+      simulateMiloInteraction("Initiate phone call to patient Mrs. Sharma.");
+    }
   });
-}
+});
 
-if (actionBtn) {
-  actionBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    setView('milo');
-    // Simulate typing a draft request
-    simulateMiloInteraction("Draft a message to John Doe for a lab results follow-up.");
+attentionItems.forEach(item => {
+  item.addEventListener('click', () => {
+    const title = item.querySelector('.att-title')?.innerText || '';
+    if (title.includes('Confirm') || title.includes('slot')) {
+      setView('calendar');
+    } else if (title.includes('Check in') || title.includes('call')) {
+      setView('patients');
+    }
   });
-}
+});
 
 // --- Milo Assistant Chat View Logic ---
 const chatMessages = document.getElementById('chat-messages');
@@ -172,11 +179,11 @@ function appendChatMessage(sender, text) {
 function getMiloResponse(userMsg) {
   const msg = userMsg.toLowerCase();
   if (msg.includes('john') || msg.includes('doe') || msg.includes('summarize')) {
-    return "<strong>John Doe (45, Cardio Consultation):</strong> Bloodwork shows elevated serum calcium levels (11.2 mg/dL). EKG shows normal sinus rhythm. Medical history indicates mild hypertension. I suggest checking for primary hyperparathyroidism.";
+    return "<strong>John Doe (45, Cardio Consultation):</strong> Bloodwork shows elevated serum calcium levels (<span class=\"tabular-nums\">11.2</span> mg/dL). EKG shows normal sinus rhythm. Medical history indicates mild hypertension. I suggest checking for primary hyperparathyroidism.";
   } else if (msg.includes('draft') || msg.includes('message')) {
-    return "Here is a message draft for John Doe:<br><br><em>'Hi John, Dr. Patel's office here. We received your recent dental lab reports. Dr. Patel would like to schedule a quick 15-minute follow-up this Friday to review the results together. Please click here to select a time: carepilot.link/jd-sched'</em>";
+    return "Here is a message draft for John Doe:<br><br><em>'Hi John, Dr. Patel's office here. We received your recent lab reports. Dr. Patel would like to schedule a quick <span class=\"tabular-nums\">15</span>-minute follow-up this Friday to review the results together. Please click here to select a time: carepilot.link/jd-sched'</em>";
   } else if (msg.includes('schedule') || msg.includes('calendar') || msg.includes('upcoming')) {
-    return "You have <strong>3 appointments</strong> left today:<br>• 10:30 AM: Sarah Smith (Routine check)<br>• 01:30 PM: Robert Johnson (Meds review)<br>• 03:00 PM: Emily Davis (Therapy check)";
+    return "You have <strong class=\"tabular-nums\">3 appointments</strong> left today:<br>• <span class=\"tabular-nums\">10:30 AM</span>: Sarah Smith (Routine check)<br>• <span class=\"tabular-nums\">01:30 PM</span>: Robert Johnson (Meds review)<br>• <span class=\"tabular-nums\">03:00 PM</span>: Emily Davis (Therapy check)";
   } else {
     return "I am on it! Let me fetch that information from the clinic records for you. Is there anything else you'd like to check in the meantime?";
   }
