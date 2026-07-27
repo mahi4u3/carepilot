@@ -3449,6 +3449,86 @@ a,
   margin: 0;
 }
 
+/* Milo Avatar Enlargement (+25%) */
+.chat-avatar {
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 50% !important;
+  object-fit: cover !important;
+  flex-shrink: 0 !important;
+}
+
+#milo-main-avatar {
+  width: 48px !important;
+  height: 48px !important;
+  border-radius: 50% !important;
+  object-fit: cover !important;
+  flex-shrink: 0 !important;
+}
+
+/* Walk-in Form & Search Cards */
+.walkin-form-card,
+.walkin-search-card {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 16px;
+  padding: 14px;
+  margin-top: 10px;
+  width: 100%;
+  box-sizing: border-box;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+}
+
+.walkin-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #CBD5E1;
+  border-radius: 8px;
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  font-size: 12.5px;
+  color: #0F172A;
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 150ms ease;
+}
+
+.walkin-input:focus {
+  border-color: #2563EB;
+}
+
+.walkin-submit-btn {
+  width: 100%;
+  background: #2563EB;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 8px;
+  padding: 10px;
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+
+.walkin-submit-btn:hover {
+  background: #1D4ED8;
+}
+
+.search-result-item {
+  padding: 8px 10px;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+  margin-bottom: 6px;
+  cursor: pointer;
+  transition: all 150ms ease;
+  background: #F8FAFC;
+}
+
+.search-result-item:hover {
+  background: #EFF6FF;
+  border-color: #BFDBFE;
+}
+
 /* Note Drafting Component Box */
 .note-editor-box {
   background: #FFFFFF;

@@ -273,7 +273,7 @@ function updateTurnByTurnSuggestions() {
       suggestions = [
         { label: 'Who is my first appointment today?', action: 'GOTO_STATE_2' },
         { label: 'Show pending confirmations', action: 'SHOW_CONFIRMATIONS' },
-        { label: 'View today\'s full schedule', action: 'SHOW_SCHEDULE' }
+        { label: 'Add Walk-in Patient', action: 'ADD_WALKIN' }
       ];
       break;
 
@@ -282,16 +282,15 @@ function updateTurnByTurnSuggestions() {
       suggestions = [
         { label: `Has ${activeP} arrived in lobby?`, action: 'TRIGGER_ARRIVAL_CHECK' },
         { label: 'Mark as Checked In', action: 'CHOOSE_BRANCH_A' },
-        { label: 'Send SMS reminder', action: 'SEND_SMS_REMINDER' },
-        { label: 'Notify Doctor Ready', action: 'NOTIFY_READY' }
+        { label: 'Add Walk-in Patient', action: 'ADD_WALKIN' }
       ];
       break;
 
     case 'STATE_3_ARRIVED': // Branch A
       suggestions = [
         { label: 'Inform patient doctor will reach soon', action: 'INFORM_REACH_SOON' },
-        { label: 'Ask patient to wait in Lobby A', action: 'WAIT_LOBBY_A' },
-        { label: 'Start consultation now', action: 'GOTO_STATE_4' }
+        { label: 'Start consultation now', action: 'GOTO_STATE_4' },
+        { label: 'Add Walk-in Patient', action: 'ADD_WALKIN' }
       ];
       break;
 
@@ -299,32 +298,7 @@ function updateTurnByTurnSuggestions() {
       suggestions = [
         { label: 'Send SMS reminder to patient', action: 'SEND_SMS_REMINDER' },
         { label: 'Call patient', action: 'PROMPT_CALL_PATIENT' },
-        { label: 'Swap slot with next arrived patient', action: 'SWAP_SLOTS_WITH_NEXT' }
-      ];
-      break;
-
-    case 'STATE_4_OVERRUN':
-      suggestions = [
-        { label: 'Notify waiting patients of 15-min delay', action: 'NOTIFY_15M_DELAY' },
-        { label: 'Offer rescheduling option to waiting list', action: 'OFFER_RESCHEDULE_WAITLIST' },
-        { label: 'Complete consultation & proceed', action: 'GOTO_STATE_5' }
-      ];
-      break;
-
-    case 'STATE_5_POST_CONSULT':
-      suggestions = [
-        { label: 'Add clinical notes', action: 'OPEN_CLINICAL_NOTES' },
-        { label: 'Schedule follow-up', action: 'OPEN_FOLLOWUP_PICKER' },
-        { label: `Call next patient: ${scenarioState.nextPatient.name}`, action: 'CALL_NEXT_PATIENT' }
-      ];
-      break;
-
-    case 'STATE_PATIENT_LIST':
-      suggestions = [
-        { label: 'Who is currently waiting in the lobby?', action: 'TRIGGER_ARRIVAL_CHECK' },
-        { label: 'Show next scheduled appointment', action: 'GOTO_STATE_2' },
-        { label: 'Add new walk-in patient', action: 'ADD_WALKIN' },
-        { label: 'Notify waiting patients of delay', action: 'NOTIFY_15M_DELAY' }
+        { label: 'Add Walk-in Patient', action: 'ADD_WALKIN' }
       ];
       break;
 
@@ -332,8 +306,31 @@ function updateTurnByTurnSuggestions() {
       suggestions = [
         { label: 'Check if patient arrived in lobby', action: 'TRIGGER_ARRIVAL_CHECK' },
         { label: 'Swap slot with next waiting patient', action: 'SWAP_SLOTS_WITH_NEXT' },
-        { label: 'Check for incoming patient message', action: 'CHECK_INCOMING_MSG' },
-        { label: 'Show full patient list', action: 'SHOW_PATIENT_LIST' }
+        { label: 'Add Walk-in Patient', action: 'ADD_WALKIN' }
+      ];
+      break;
+
+    case 'STATE_4_OVERRUN':
+      suggestions = [
+        { label: 'Notify waiting patients of 15-min delay', action: 'NOTIFY_15M_DELAY' },
+        { label: 'Complete consultation & proceed', action: 'GOTO_STATE_5' },
+        { label: 'Add Walk-in Patient', action: 'ADD_WALKIN' }
+      ];
+      break;
+
+    case 'STATE_5_POST_CONSULT':
+      suggestions = [
+        { label: 'Add clinical notes', action: 'OPEN_CLINICAL_NOTES' },
+        { label: 'Schedule follow-up', action: 'OPEN_FOLLOWUP_PICKER' },
+        { label: 'Add Walk-in Patient', action: 'ADD_WALKIN' }
+      ];
+      break;
+
+    case 'STATE_PATIENT_LIST':
+      suggestions = [
+        { label: 'Who is currently waiting in the lobby?', action: 'TRIGGER_ARRIVAL_CHECK' },
+        { label: 'Show next scheduled appointment', action: 'GOTO_STATE_2' },
+        { label: 'Add Walk-in Patient', action: 'ADD_WALKIN' }
       ];
       break;
 
@@ -341,7 +338,7 @@ function updateTurnByTurnSuggestions() {
       suggestions = [
         { label: 'Who is my first appointment today?', action: 'GOTO_STATE_2' },
         { label: 'View today\'s full schedule', action: 'SHOW_SCHEDULE' },
-        { label: 'Add new walk-in patient', action: 'ADD_WALKIN' }
+        { label: 'Add Walk-in Patient', action: 'ADD_WALKIN' }
       ];
       break;
   }
@@ -355,6 +352,13 @@ function updateTurnByTurnSuggestions() {
       </button>
     `;
   });
+
+  // Always append [+ More] chip at the end
+  pillsHTML += `
+    <button class="smart-sug-pill" style="background:#F1F5F9; color:#0F172A; font-weight:700;" onclick="executeScenarioPill('SHOW_MORE_OPTIONS', '+ More')">
+      + More
+    </button>
+  `;
 
   container.innerHTML = pillsHTML;
 }
@@ -758,7 +762,266 @@ function executeScenarioPill(actionKey, labelText) {
         appendChatMessage('milo', `Notification dispatches to <strong>${pName}</strong>: <em>"Dr. Patel is ready for you in Room 2."</em>`);
       }, 500);
       break;
+
+    // Walk-in Patient Workflow Handler
+    case 'ADD_WALKIN':
+      changeMiloEmotion('welcoming');
+      setTimeout(() => {
+        const row = document.createElement('div');
+        row.className = 'chat-bubble-row milo-bubble';
+        row.innerHTML = `
+          <img src="assets/milo/Milo_overview.png" alt="Milo" class="chat-avatar">
+          <div class="chat-bubble-content" style="width:100%;">
+            <p><strong>Walk-in Patient Registration:</strong></p>
+            <p style="font-size:12.5px; color:#475569; margin-top:4px;">Is this a <strong>New Patient</strong> or an <strong>Existing Patient</strong>?</p>
+            <div class="inline-btn-group" style="margin-top:10px;">
+              <button class="smart-sug-pill primary-green" onclick="executeScenarioPill('WALKIN_NEW_PATIENT', 'New Patient')">➕ New Patient</button>
+              <button class="smart-sug-pill" onclick="executeScenarioPill('WALKIN_EXISTING_PATIENT', 'Existing Patient')">🔍 Existing Patient</button>
+            </div>
+            <span class="chat-time">Just now</span>
+          </div>
+        `;
+        chatMessages.appendChild(row);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }, 500);
+      break;
+
+    case 'WALKIN_NEW_PATIENT':
+      changeMiloEmotion('focused');
+      setTimeout(() => {
+        const row = document.createElement('div');
+        row.className = 'chat-bubble-row milo-bubble';
+        row.innerHTML = `
+          <img src="assets/milo/milo_reviewing.png" alt="Milo" class="chat-avatar">
+          <div class="chat-bubble-content" style="width:100%;">
+            <div class="walkin-form-card">
+              <h4 style="margin:0 0 10px 0; font-family:'Outfit',sans-serif; font-size:14px; color:#0F172A;">➕ Register New Walk-in Patient</h4>
+              <div class="form-group" style="margin-bottom:8px;">
+                <label style="font-size:11px; font-weight:600; color:#64748B; text-transform:uppercase;">Patient Name *</label>
+                <input type="text" id="walkin-name" class="walkin-input" placeholder="e.g. Ananya Roy" value="Ananya Roy">
+              </div>
+              <div class="form-row" style="display:flex; gap:8px; margin-bottom:8px;">
+                <div style="flex:1;">
+                  <label style="font-size:11px; font-weight:600; color:#64748B; text-transform:uppercase;">Age *</label>
+                  <input type="text" id="walkin-age" class="walkin-input" placeholder="e.g. 34 Yrs" value="34 Yrs">
+                </div>
+                <div style="flex:1;">
+                  <label style="font-size:11px; font-weight:600; color:#64748B; text-transform:uppercase;">Location *</label>
+                  <input type="text" id="walkin-loc" class="walkin-input" placeholder="e.g. Sector 5, City" value="Sector 5, City">
+                </div>
+              </div>
+              <div class="form-group" style="margin-bottom:12px;">
+                <label style="font-size:11px; font-weight:600; color:#64748B; text-transform:uppercase;">Notes / Chief Complaints</label>
+                <input type="text" id="walkin-notes" class="walkin-input" placeholder="e.g. Sudden severe headache & mild fever" value="Sudden severe headache & mild fever">
+              </div>
+              <button class="walkin-submit-btn" onclick="submitNewWalkinPatient()">Register &amp; Add to Queue</button>
+            </div>
+            <span class="chat-time">Just now</span>
+          </div>
+        `;
+        chatMessages.appendChild(row);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }, 500);
+      break;
+
+    case 'WALKIN_EXISTING_PATIENT':
+      changeMiloEmotion('focused');
+      setTimeout(() => {
+        const row = document.createElement('div');
+        row.className = 'chat-bubble-row milo-bubble';
+        row.innerHTML = `
+          <img src="assets/milo/milo_reviewing.png" alt="Milo" class="chat-avatar">
+          <div class="chat-bubble-content" style="width:100%;">
+            <div class="walkin-search-card">
+              <p style="margin:0 0 8px 0; font-weight:600; color:#0F172A; font-family:'Outfit',sans-serif;">🔍 Search Existing Patient Database</p>
+              <div class="search-input-wrapper" style="display:flex; gap:6px; margin-bottom:10px;">
+                <input type="text" id="existing-search-input" class="walkin-input" placeholder="Enter patient name or ID..." value="Priya Verma">
+                <button class="walkin-submit-btn" style="width:auto; padding:0 14px;" onclick="searchExistingPatient()">Search</button>
+              </div>
+              <div id="search-results-box" class="search-results-box">
+                <div class="search-result-item" onclick="selectExistingPatient('Priya Verma', 'PAT-88219')">
+                  <div style="font-family:'Outfit',sans-serif; font-size:13px;"><strong>Priya Verma</strong> (ID: PAT-88219)</div>
+                  <div style="font-size:11px; color:#64748B;">Last visit: 3 weeks ago &bull; Dental</div>
+                </div>
+                <div class="search-result-item" onclick="selectExistingPatient('Vikram Malhotra', 'PAT-94012')">
+                  <div style="font-family:'Outfit',sans-serif; font-size:13px;"><strong>Vikram Malhotra</strong> (ID: PAT-94012)</div>
+                  <div style="font-size:11px; color:#64748B;">Last visit: 1 month ago &bull; Cardiology</div>
+                </div>
+                <div class="no-match-box" style="margin-top:8px; padding-top:8px; border-top:1px dashed #E2E8F0; display:flex; align-items:center; justify-content:space-between;">
+                  <span style="font-size:11.5px; color:#64748B;">No match found?</span>
+                  <button class="smart-sug-pill" onclick="executeScenarioPill('WALKIN_NEW_PATIENT', '+ Add New Patient')">➕ Add New Patient</button>
+                </div>
+              </div>
+            </div>
+            <span class="chat-time">Just now</span>
+          </div>
+        `;
+        chatMessages.appendChild(row);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }, 500);
+    // Practice Coordinator Quick Menu Card Handler
+    case 'SHOW_MORE_OPTIONS':
+      changeMiloEmotion('focused');
+      setTimeout(() => {
+        const row = document.createElement('div');
+        row.className = 'chat-bubble-row milo-bubble';
+        row.innerHTML = `
+          <img src="assets/milo/milo_reviewing.png" alt="Milo" class="chat-avatar">
+          <div class="chat-bubble-content" style="width:100%;">
+            <div style="background:#FFFFFF; border:1px solid #E2E8F0; border-radius:16px; padding:14px; width:100%; box-sizing:border-box; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
+              <h4 style="margin:0 0 10px 0; font-family:'Outfit',sans-serif; font-size:14px; color:#0F172A;">💡 Practice Coordinator Quick Menu</h4>
+              <div style="display:flex; flex-direction:column; gap:6px;">
+                <button class="smart-sug-pill" style="justify-content:flex-start;" onclick="executeScenarioPill('GOTO_STATE_2', 'Who is my first appointment today?')">📅 Who is my first appointment today?</button>
+                <button class="smart-sug-pill" style="justify-content:flex-start;" onclick="executeScenarioPill('SHOW_PATIENT_LIST', 'Show full patient list')">📋 Show full patient list</button>
+                <button class="smart-sug-pill" style="justify-content:flex-start;" onclick="executeScenarioPill('TRIGGER_ARRIVAL_CHECK', 'Check if patient arrived in lobby')">📍 Check if patient arrived in lobby</button>
+                <button class="smart-sug-pill" style="justify-content:flex-start;" onclick="executeScenarioPill('SEND_SMS_REMINDER', 'Send SMS reminder to patient')">💬 Send SMS reminder to patient</button>
+                <button class="smart-sug-pill" style="justify-content:flex-start;" onclick="executeScenarioPill('SWAP_SLOTS_WITH_NEXT', 'Swap slot with next waiting patient')">⇄ Swap slot with next waiting patient</button>
+                <button class="smart-sug-pill primary-green" style="justify-content:flex-start;" onclick="executeScenarioPill('ADD_WALKIN', 'Add Walk-in Patient')">➕ Add Walk-in Patient</button>
+                <button class="smart-sug-pill" style="justify-content:flex-start;" onclick="executeScenarioPill('NOTIFY_15M_DELAY', 'Notify waiting patients of delay')">⚠️ Notify waiting patients of 15-min delay</button>
+                <button class="smart-sug-pill" style="justify-content:flex-start;" onclick="executeScenarioPill('OPEN_CLINICAL_NOTES', 'Add clinical notes')">📝 Add clinical notes</button>
+              </div>
+            </div>
+            <span class="chat-time">Just now</span>
+          </div>
+        `;
+        chatMessages.appendChild(row);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }, 500);
+      break;
   }
+}
+
+// Global Draft Object for Walk-in Workflow
+let walkinDraft = {
+  isNew: true,
+  name: 'Ananya Roy',
+  age: '34 Yrs',
+  loc: 'Sector 5, City',
+  notes: 'Sudden severe headache & mild fever',
+  id: '',
+  slotAssigned: 'Next Available'
+};
+
+// Submit New Walk-in Patient (Step 2A -> proceeds to Step 3 Slot Selection)
+function submitNewWalkinPatient() {
+  const name = document.getElementById('walkin-name')?.value || 'Ananya Roy';
+  const age = document.getElementById('walkin-age')?.value || '34 Yrs';
+  const loc = document.getElementById('walkin-loc')?.value || 'Sector 5, City';
+  const notes = document.getElementById('walkin-notes')?.value || 'Sudden severe headache & mild fever';
+
+  walkinDraft = { isNew: true, name, age, loc, notes, id: '', slotAssigned: '' };
+  renderWalkinSlotSelection();
+}
+
+// Search Existing Patient (Step 2B)
+function searchExistingPatient() {
+  const query = (document.getElementById('existing-search-input')?.value || '').toLowerCase();
+  const box = document.getElementById('search-results-box');
+  if (!box) return;
+
+  if (query.includes('priya')) {
+    box.innerHTML = `
+      <div class="search-result-item" onclick="selectExistingPatient('Priya Verma', 'PAT-88219')">
+        <div style="font-family:'Outfit',sans-serif; font-size:13px;"><strong>Priya Verma</strong> (ID: PAT-88219)</div>
+        <div style="font-size:11px; color:#64748B;">Last visit: 3 weeks ago &bull; Dental</div>
+      </div>
+    `;
+  } else if (query.includes('vikram')) {
+    box.innerHTML = `
+      <div class="search-result-item" onclick="selectExistingPatient('Vikram Malhotra', 'PAT-94012')">
+        <div style="font-family:'Outfit',sans-serif; font-size:13px;"><strong>Vikram Malhotra</strong> (ID: PAT-94012)</div>
+        <div style="font-size:11px; color:#64748B;">Last visit: 1 month ago &bull; Cardiology</div>
+      </div>
+    `;
+  } else {
+    box.innerHTML = `
+      <div style="padding:8px; font-size:12px; color:#EA580C; font-weight:600;">No existing patient record matched "${query}".</div>
+      <div class="no-match-box" style="margin-top:8px; padding-top:8px; border-top:1px dashed #E2E8F0; display:flex; align-items:center; justify-content:space-between;">
+        <span style="font-size:11.5px; color:#64748B;">Register as new patient?</span>
+        <button class="smart-sug-pill primary-green" onclick="executeScenarioPill('WALKIN_NEW_PATIENT', '+ Add New Patient')">➕ Add New Patient</button>
+      </div>
+    `;
+  }
+}
+
+// Select Existing Patient (Step 2B -> proceeds to Step 3 Slot Selection)
+function selectExistingPatient(name, id) {
+  walkinDraft = { isNew: false, name, id, age: '', loc: '', notes: '', slotAssigned: '' };
+  renderWalkinSlotSelection();
+}
+
+// STEP 3: Slot Selection & Criticality (Applies to BOTH New & Existing)
+function renderWalkinSlotSelection() {
+  const pName = walkinDraft.name;
+  const row = document.createElement('div');
+  row.className = 'chat-bubble-row milo-bubble';
+  row.innerHTML = `
+    <img src="assets/milo/milo_caring.png" alt="Milo" class="chat-avatar">
+    <div class="chat-bubble-content" style="width:100%;">
+      <p><strong>Assign Criticality &amp; Slot Priority:</strong></p>
+      <p style="font-size:12.5px; color:#475569; margin-top:4px;">Please select slot assignment priority for <strong>${pName}</strong>:</p>
+      <div class="inline-btn-group" style="margin-top:10px; display:flex; flex-wrap:wrap; gap:6px;">
+        <button class="smart-sug-pill primary-red" onclick="finalizeWalkinSlot('Immediate / Emergency')">🚨 Immediate / Emergency</button>
+        <button class="smart-sug-pill primary-green" onclick="finalizeWalkinSlot('Next Available')">⚡ Next Available</button>
+        <button class="smart-sug-pill" onclick="finalizeWalkinSlot('Specific Time Slot (10:30 AM)')">🕒 Specific Time Slot (10:30 AM)</button>
+      </div>
+      <span class="chat-time">Just now</span>
+    </div>
+  `;
+  chatMessages.appendChild(row);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+// STEP 4: System Confirmation Card & In-Chat Notification
+function finalizeWalkinSlot(slotAssigned) {
+  const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const row = document.createElement('div');
+  row.className = 'system-alert-row';
+
+  if (walkinDraft.isNew) {
+    row.innerHTML = `
+      <div class="system-alert-card">
+        <div class="system-alert-header">
+          <div class="system-alert-badge">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            <span>🔔 System Notification &bull; Today at ${nowTime}</span>
+          </div>
+        </div>
+        <h4 class="system-alert-title">New Walk-in Patient Added &amp; Scheduled</h4>
+        <div class="system-swap-details-box">
+          <div class="swap-detail-item"><span class="detail-label">Patient Details:</span> <strong class="detail-value">Name: ${walkinDraft.name} &bull; Age: ${walkinDraft.age} &bull; Location: ${walkinDraft.loc}</strong></div>
+          <div class="swap-detail-item"><span class="detail-label">Slot Assigned:</span> <strong class="detail-value">${slotAssigned}</strong></div>
+          <div class="swap-detail-item"><span class="detail-label">Notes:</span> <strong class="detail-value">${walkinDraft.notes}</strong></div>
+          <div class="swap-detail-item"><span class="detail-label">Status:</span> <span class="state-indicator-badge state-badge-checked" style="width:fit-content; margin-top:2px;">Confirmed in Queue</span></div>
+        </div>
+        <p class="system-alert-footer">Registered in clinic registry and synced with patient queue.</p>
+      </div>
+    `;
+  } else {
+    row.innerHTML = `
+      <div class="system-alert-card">
+        <div class="system-alert-header">
+          <div class="system-alert-badge">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            <span>🔔 System Notification &bull; Today at ${nowTime}</span>
+          </div>
+        </div>
+        <h4 class="system-alert-title">Existing Walk-in Scheduled</h4>
+        <div class="system-swap-details-box">
+          <div class="swap-detail-item"><span class="detail-label">Patient:</span> <strong class="detail-value">${walkinDraft.name} (ID: ${walkinDraft.id})</strong></div>
+          <div class="swap-detail-item"><span class="detail-label">Slot Assigned:</span> <strong class="detail-value">${slotAssigned}</strong></div>
+          <div class="swap-detail-item"><span class="detail-label">Status:</span> <span class="state-indicator-badge state-badge-checked" style="width:fit-content; margin-top:2px;">Confirmed in Queue</span></div>
+        </div>
+        <p class="system-alert-footer">Appointment calendar updated and front desk notified.</p>
+      </div>
+    `;
+  }
+
+  chatMessages.appendChild(row);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+
+  changeMiloEmotion('celebrating');
+  updateTurnByTurnSuggestions();
 }
 
 function updateSuggestedActionsStrip() {
