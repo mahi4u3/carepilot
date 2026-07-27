@@ -105,17 +105,21 @@ const emotionTags = document.querySelectorAll('.emotion-tag');
 
 // Available Mascot Images mapped to emotions
 const miloAssets = {
+  welcoming: 'assets/milo/Milo_overview.png',
+  attentive: 'assets/milo/milo_caring.png',
   happy: 'assets/milo/milo_happy.png',
+  alert: 'assets/milo/milo_alert.png',
   thinking: 'assets/milo/milo_thinking.png',
+  celebrating: 'assets/milo/milo_thumbsup.png',
+  focused: 'assets/milo/milo_reviewing.png',
   thumbsup: 'assets/milo/milo_thumbsup.png',
   caring: 'assets/milo/milo_caring.png',
-  alert: 'assets/milo/milo_alert.png',
   reviewing: 'assets/milo/milo_reviewing.png'
 };
 
 // Update Milo's emotion in avatar slots
 function changeMiloEmotion(emotion) {
-  const assetPath = miloAssets[emotion] || miloAssets.happy;
+  const assetPath = miloAssets[emotion] || miloAssets.welcoming || miloAssets.happy;
   
   // Update avatars with scale pop effect
   if (miloMainAvatar) {
@@ -200,31 +204,49 @@ function getMiloResponse(userMsg) {
   }
 }
 
-// Core send action
+// Core send action with Intent Router & Free-Form Resilience
 function sendMessage() {
   const text = chatInput.value.trim();
   if (!text) return;
   
   chatInput.value = '';
+  const lowerText = text.toLowerCase();
+
+  // 1. Patient List Intent Handler
+  if (lowerText.includes('patient list') || lowerText.includes('today\'s patients') || lowerText.includes('patients scheduled') || lowerText === 'patients' || lowerText.includes('show patients')) {
+    executeScenarioPill('SHOW_PATIENT_LIST', text);
+    return;
+  }
+
+  // 2. Workflow Intent Router for Free-Form Inputs
+  if (lowerText.includes('first appointment') || lowerText.includes('who is first') || lowerText.includes('next patient')) {
+    executeScenarioPill('GOTO_STATE_2', text);
+    return;
+  } else if (lowerText.includes('arrived') || lowerText.includes('check in') || lowerText.includes('lobby')) {
+    executeScenarioPill('TRIGGER_ARRIVAL_CHECK', text);
+    return;
+  } else if (lowerText.includes('delay') || lowerText.includes('late') || lowerText.includes('overrun')) {
+    executeScenarioPill('GOTO_STATE_4', text);
+    return;
+  } else if (lowerText.includes('notes') || lowerText.includes('completed') || lowerText.includes('done')) {
+    executeScenarioPill('GOTO_STATE_5', text);
+    return;
+  }
+
+  // 3. Fallback General AI Practice Coordinator Query Handler
   appendChatMessage('user', text);
+  changeMiloEmotion('focused');
   
-  // Trigger Milo response lifecycle (thinking state -> reply)
-  changeMiloEmotion('thinking');
-  
-  // Create simulated typing delay
   setTimeout(() => {
     const replyText = getMiloResponse(text);
-    // Switch to thumbsup or happy on success response
-    const nextEmotion = text.toLowerCase().includes('draft') ? 'thumbsup' : 'happy';
-    changeMiloEmotion(nextEmotion);
+    changeMiloEmotion('focused');
     appendChatMessage('milo', replyText);
-  }, 1000);
+  }, 600);
 }
 
-// --- Stateful Patient Care Flow & Contextual Smart Suggested Actions Engine ---
-
-const patientCareFlow = {
-  state: 'LOBBY', // States: 'LOBBY' (State A), 'CHECKED_IN' (State B), 'IN_SESSION' (State C), 'COMPLETED' (State D), 'NEXT_PATIENT' (State E)
+// --- End-to-End Scenario State Machine ---
+const scenarioState = {
+  activeState: 'STATE_1_ONBOARDING', // STATE_1_ONBOARDING, STATE_2_READINESS, STATE_3_ARRIVED, STATE_3_LATE, STATE_4_OVERRUN, STATE_5_POST_CONSULT, STATE_PATIENT_LIST
   activePatient: {
     name: 'Ritika Sharma',
     time: '9:30 AM',
@@ -239,54 +261,96 @@ const patientCareFlow = {
   }
 };
 
-// Continuous Turn-by-Turn Suggested Actions & Follow-up Generator
-function updateTurnByTurnSuggestions(contextText = '') {
+// Render Turn-by-Turn Suggested Action Pills aligned strictly to current State Machine
+function updateTurnByTurnSuggestions() {
   const container = document.querySelector('.suggested-actions-strip');
   if (!container) return;
 
-  const txt = (contextText || '').toLowerCase();
   let suggestions = [];
 
-  if (txt.includes('checked in') || patientCareFlow.state === 'CHECKED_IN') {
-    suggestions = [
-      { label: 'Inform patient to wait in lobby', action: 'INFORM_WAIT' },
-      { label: 'Start consultation now', action: 'START_CONSULTATION' },
-      { label: 'Reschedule to another time/day', action: 'RESCHEDULE_INLINE' },
-      { label: 'View patient history/notes', action: 'VIEW_DETAILS' }
-    ];
-  } else if (txt.includes('consultation started') || patientCareFlow.state === 'IN_SESSION') {
-    suggestions = [
-      { label: 'Notify next patient of delay', action: 'NOTIFY_DELAY' },
-      { label: 'View chief complaints & vitals', action: 'VIEW_VITALS' },
-      { label: 'Complete consultation & add notes', action: 'COMPLETE_CONSULTATION' }
-    ];
-  } else if (txt.includes('consultation closed') || txt.includes('completed') || patientCareFlow.state === 'COMPLETED') {
-    suggestions = [
-      { label: 'Add clinical notes', action: 'DRAFT_NOTES_BOX' },
-      { label: 'Schedule follow-up appointment', action: 'SCHEDULE_FOLLOWUP' },
-      { label: 'Call next patient: Sarah Smith', action: 'TRANSITION_NEXT' }
-    ];
-  } else if (txt.includes('next patient') || patientCareFlow.state === 'NEXT_PATIENT') {
-    suggestions = [
-      { label: 'Ask about current symptoms', action: 'INTAKE_SYMPTOMS' },
-      { label: 'Check recent lab results', action: 'CHECK_LABS' },
-      { label: 'Mark as Arrived', action: 'CHECKIN_NEXT' },
-      { label: 'Cancel / Reschedule', action: 'RESCHEDULE_INLINE' }
-    ];
-  } else {
-    // Default / General Query Turn-by-Turn Suggestions
-    suggestions = [
-      { label: 'Summarize John Doe profile', action: 'SUMMARIZE_JOHN' },
-      { label: 'View today\'s full schedule', action: 'SHOW_SCHEDULE' },
-      { label: 'Add new walk-in patient', action: 'ADD_WALKIN' }
-    ];
+  switch (scenarioState.activeState) {
+    case 'STATE_1_ONBOARDING':
+      suggestions = [
+        { label: 'Who is my first appointment today?', action: 'GOTO_STATE_2' },
+        { label: 'Show pending confirmations', action: 'SHOW_CONFIRMATIONS' },
+        { label: 'View today\'s full schedule', action: 'SHOW_SCHEDULE' }
+      ];
+      break;
+
+    case 'STATE_2_READINESS':
+      const activeP = scenarioState.activePatient.name;
+      suggestions = [
+        { label: `Has ${activeP} arrived in lobby?`, action: 'TRIGGER_ARRIVAL_CHECK' },
+        { label: 'Mark as Checked In', action: 'CHOOSE_BRANCH_A' },
+        { label: 'Send SMS reminder', action: 'SEND_SMS_REMINDER' },
+        { label: 'Notify Doctor Ready', action: 'NOTIFY_READY' }
+      ];
+      break;
+
+    case 'STATE_3_ARRIVED': // Branch A
+      suggestions = [
+        { label: 'Inform patient doctor will reach soon', action: 'INFORM_REACH_SOON' },
+        { label: 'Ask patient to wait in Lobby A', action: 'WAIT_LOBBY_A' },
+        { label: 'Start consultation now', action: 'GOTO_STATE_4' }
+      ];
+      break;
+
+    case 'STATE_3_LATE': // Branch B
+      suggestions = [
+        { label: 'Send SMS reminder to patient', action: 'SEND_SMS_REMINDER' },
+        { label: 'Call patient', action: 'PROMPT_CALL_PATIENT' },
+        { label: 'Swap slot with next arrived patient', action: 'SWAP_SLOTS_WITH_NEXT' }
+      ];
+      break;
+
+    case 'STATE_4_OVERRUN':
+      suggestions = [
+        { label: 'Notify waiting patients of 15-min delay', action: 'NOTIFY_15M_DELAY' },
+        { label: 'Offer rescheduling option to waiting list', action: 'OFFER_RESCHEDULE_WAITLIST' },
+        { label: 'Complete consultation & proceed', action: 'GOTO_STATE_5' }
+      ];
+      break;
+
+    case 'STATE_5_POST_CONSULT':
+      suggestions = [
+        { label: 'Add clinical notes', action: 'OPEN_CLINICAL_NOTES' },
+        { label: 'Schedule follow-up', action: 'OPEN_FOLLOWUP_PICKER' },
+        { label: `Call next patient: ${scenarioState.nextPatient.name}`, action: 'CALL_NEXT_PATIENT' }
+      ];
+      break;
+
+    case 'STATE_PATIENT_LIST':
+      suggestions = [
+        { label: 'Who is currently waiting in the lobby?', action: 'TRIGGER_ARRIVAL_CHECK' },
+        { label: 'Show next scheduled appointment', action: 'GOTO_STATE_2' },
+        { label: 'Add new walk-in patient', action: 'ADD_WALKIN' },
+        { label: 'Notify waiting patients of delay', action: 'NOTIFY_15M_DELAY' }
+      ];
+      break;
+
+    case 'STATE_POST_CONTACT':
+      suggestions = [
+        { label: 'Check if patient arrived in lobby', action: 'TRIGGER_ARRIVAL_CHECK' },
+        { label: 'Swap slot with next waiting patient', action: 'SWAP_SLOTS_WITH_NEXT' },
+        { label: 'Check for incoming patient message', action: 'CHECK_INCOMING_MSG' },
+        { label: 'Show full patient list', action: 'SHOW_PATIENT_LIST' }
+      ];
+      break;
+
+    default:
+      suggestions = [
+        { label: 'Who is my first appointment today?', action: 'GOTO_STATE_2' },
+        { label: 'View today\'s full schedule', action: 'SHOW_SCHEDULE' },
+        { label: 'Add new walk-in patient', action: 'ADD_WALKIN' }
+      ];
+      break;
   }
 
   let pillsHTML = '';
   suggestions.forEach((sug, idx) => {
     const colorClass = idx === 0 ? 'primary-green' : '';
     pillsHTML += `
-      <button class="smart-sug-pill ${colorClass}" onclick="executeSuggestedTurnPill('${sug.action}', '${sug.label.replace(/'/g, "\\'")}')">
+      <button class="smart-sug-pill ${colorClass}" onclick="executeScenarioPill('${sug.action}', '${sug.label.replace(/'/g, "\\'")}')">
         ${sug.label}
       </button>
     `;
@@ -295,42 +359,408 @@ function updateTurnByTurnSuggestions(contextText = '') {
   container.innerHTML = pillsHTML;
 }
 
-function executeSuggestedTurnPill(actionKey, labelText) {
-  // Post action into chat thread
-  appendChatMessage('user', labelText);
+function updateSuggestedActionsStrip() {
+  updateTurnByTurnSuggestions();
+}
 
-  // Handle specific turn actions
-  if (actionKey === 'SUMMARIZE_JOHN') {
-    changeMiloEmotion('thinking');
-    setTimeout(() => {
-      changeMiloEmotion('reviewing');
-      appendChatMessage('milo', getMiloResponse('john'));
-    }, 600);
-  } else if (actionKey === 'SHOW_SCHEDULE') {
-    changeMiloEmotion('thinking');
-    setTimeout(() => {
+function updateScenarioSuggestedActions() {
+  updateTurnByTurnSuggestions();
+}
+
+function executeSuggestedTurnPill(actionKey, labelText) {
+  executeScenarioPill(actionKey, labelText);
+}
+
+// Master Scenario Action Handler & State Router
+function executeScenarioPill(actionKey, labelText) {
+  appendChatMessage('user', labelText);
+  const pName = scenarioState.activePatient.name;
+  const nextName = scenarioState.nextPatient.name;
+
+  switch (actionKey) {
+
+    // Patient List Query Action Handler - Overhauled Flexbox Queue Card
+    case 'SHOW_PATIENT_LIST':
+      scenarioState.activeState = 'STATE_PATIENT_LIST';
+      changeMiloEmotion('focused');
+      setTimeout(() => {
+        const row = document.createElement('div');
+        row.className = 'chat-bubble-row milo-bubble';
+        row.innerHTML = `
+          <img src="assets/milo/milo_reviewing.png" alt="Milo" class="chat-avatar">
+          <div class="chat-bubble-content" style="width:100%;">
+            <p>Here is today's real-time patient queue (18 Scheduled):</p>
+            <div class="patient-queue-card">
+              <div class="queue-header">
+                <h4>Today's Patient Queue</h4>
+                <span class="badge-blue">Real-time Sync</span>
+              </div>
+              <div class="patient-row">
+                <div class="patient-info">
+                  <span class="patient-name-title">${scenarioState.activePatient.name}</span>
+                  <span class="patient-meta-sub">9:30 AM &bull; Consultation</span>
+                </div>
+                <span class="status-pill state-badge-checked">Waiting in Lobby</span>
+              </div>
+              <div class="patient-row">
+                <div class="patient-info">
+                  <span class="patient-name-title">${scenarioState.nextPatient.name}</span>
+                  <span class="patient-meta-sub">10:30 AM &bull; Follow-up</span>
+                </div>
+                <span class="status-pill state-badge-lobby">Upcoming (10:30 AM)</span>
+              </div>
+              <div class="patient-row">
+                <div class="patient-info">
+                  <span class="patient-name-title">Robert Johnson</span>
+                  <span class="patient-meta-sub">11:30 AM &bull; Meds Review</span>
+                </div>
+                <span class="status-pill state-badge-lobby">Upcoming (11:30 AM)</span>
+              </div>
+              <div class="patient-row">
+                <div class="patient-info">
+                  <span class="patient-name-title">John Doe</span>
+                  <span class="patient-meta-sub">8:30 AM &bull; Routine Check</span>
+                </div>
+                <span class="status-pill state-badge-done">Consulted</span>
+              </div>
+            </div>
+            <span class="chat-time">Just now</span>
+          </div>
+        `;
+        chatMessages.appendChild(row);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        updateTurnByTurnSuggestions();
+      }, 500);
+      break;
+
+    // Transition to State 2: Pre-Appointment Readiness (T-15 mins)
+    case 'GOTO_STATE_2':
+      scenarioState.activeState = 'STATE_2_READINESS';
+      changeMiloEmotion('attentive');
+      setTimeout(() => {
+        const row = document.createElement('div');
+        row.className = 'chat-bubble-row milo-bubble';
+        row.innerHTML = `
+          <img src="assets/milo/milo_caring.png" alt="Milo" class="chat-avatar">
+          <div class="chat-bubble-content" style="width:100%;">
+            <p>Here is your first upcoming appointment preview (in 15 mins):</p>
+            <div class="first-appt-card" style="margin-top:10px;">
+              <div class="first-appt-left">
+                <div class="clock-icon-box">
+                  <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                </div>
+                <div>
+                  <span class="first-appt-meta-lbl">First appointment</span>
+                  <h4 class="first-appt-name">${pName}</h4>
+                  <p class="first-appt-sub">Today at <span class="tabular-nums">9:30 AM</span> &bull; ${scenarioState.activePatient.reason}</p>
+                </div>
+              </div>
+              <div class="first-appt-right">
+                <span class="time-pill-green tabular-nums">In 15 mins</span>
+              </div>
+            </div>
+            <span class="chat-time">Just now</span>
+          </div>
+        `;
+        chatMessages.appendChild(row);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        updateTurnByTurnSuggestions();
+      }, 500);
+      break;
+
+    // Trigger Arrival Check Prompt (Choice between Branch A: Arrived vs Branch B: Not Arrived)
+    case 'TRIGGER_ARRIVAL_CHECK':
+      changeMiloEmotion('attentive');
+      setTimeout(() => {
+        const row = document.createElement('div');
+        row.className = 'chat-bubble-row milo-bubble';
+        row.innerHTML = `
+          <img src="assets/milo/milo_caring.png" alt="Milo" class="chat-avatar">
+          <div class="chat-bubble-content" style="width:100%;">
+            <p><strong>Lobby Arrival Check for ${pName}:</strong></p>
+            <p style="font-size:12.5px; color:#475569; margin-top:4px;">Please select the current lobby status for ${pName}:</p>
+            <div class="inline-btn-group" style="margin-top:10px;">
+              <button class="smart-sug-pill primary-green" onclick="executeScenarioPill('CHOOSE_BRANCH_A', 'Patient HAS Arrived in Lobby')">✓ Patient HAS Arrived (Checked In)</button>
+              <button class="smart-sug-pill primary-orange" onclick="executeScenarioPill('CHOOSE_BRANCH_B', 'Patient HAS NOT Arrived (Late)')">⚠️ Patient HAS NOT Arrived (Late)</button>
+            </div>
+            <span class="chat-time">Just now</span>
+          </div>
+        `;
+        chatMessages.appendChild(row);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }, 500);
+      break;
+
+    // Branch A: Patient HAS Arrived
+    case 'CHOOSE_BRANCH_A':
+      scenarioState.activeState = 'STATE_3_ARRIVED';
       changeMiloEmotion('happy');
-      appendChatMessage('milo', getMiloResponse('schedule'));
-    }, 600);
-  } else if (actionKey === 'VIEW_VITALS') {
-    setTimeout(() => {
-      appendChatMessage('milo', `<strong>Chief Complaints & Vitals &ndash; Ritika Sharma:</strong><br>&bull; BP: 120/80 mmHg &bull; HR: 72 bpm &bull; Temp: 98.6°F<br>&bull; Reason: Routine dental cleaning & sensitivity evaluation.`);
-    }, 500);
-  } else if (actionKey === 'INTAKE_SYMPTOMS') {
-    setTimeout(() => {
-      appendChatMessage('milo', `<strong>Intake Symptoms &ndash; Sarah Smith:</strong><br>&bull; Mild sensitivity to cold beverages.<br>&bull; Last dental hygiene checkup: 6 months ago.`);
-    }, 500);
-  } else if (actionKey === 'CHECK_LABS') {
-    setTimeout(() => {
-      appendChatMessage('milo', `Here are the recent lab reports for <strong>Sarah Smith</strong>:<br>&bull; Panoramic X-Ray (Clean)<br>&bull; Blood Glucose: 95 mg/dL (Normal)`);
-    }, 500);
-  } else {
-    // Route through state machine router
-    handleCareFlowAction(actionKey);
+      setTimeout(() => {
+        appendChatMessage('milo', `
+          <span class="state-indicator-badge state-badge-checked">✓ Patient Arrived</span><br>
+          <strong>${pName}</strong> is checked in and waiting in Lobby A for Room 2.
+        `);
+        updateTurnByTurnSuggestions();
+      }, 500);
+      break;
+
+    // Branch B: Patient HAS NOT Arrived (T-10 mins / Late)
+    case 'CHOOSE_BRANCH_B':
+      scenarioState.activeState = 'STATE_3_LATE';
+      changeMiloEmotion('alert');
+      setTimeout(() => {
+        appendChatMessage('milo', `
+          <span class="state-indicator-badge state-badge-next">⚠️ Arrival Alert</span><br>
+          <strong>${pName}</strong> has NOT checked in yet for the 9:30 AM slot (10 mins past expected check-in).
+        `);
+        updateTurnByTurnSuggestions();
+      }, 500);
+      break;
+
+    // Branch A Actions
+    case 'INFORM_REACH_SOON':
+      changeMiloEmotion('happy');
+      setTimeout(() => {
+        appendChatMessage('milo', `Lobby announcement dispatches: <em>"Dr. Patel will be with you shortly, ${pName}."</em>`);
+      }, 500);
+      break;
+
+    case 'WAIT_LOBBY_A':
+      changeMiloEmotion('happy');
+      setTimeout(() => {
+        appendChatMessage('milo', `Patient app update dispatches: <em>"${pName}, please relax in Lobby A. You are next in queue."</em>`);
+      }, 500);
+      break;
+
+    // Branch B Actions & Slot Swap
+    case 'SEND_SMS_REMINDER':
+      scenarioState.activeState = 'STATE_POST_CONTACT';
+      changeMiloEmotion('alert');
+      setTimeout(() => {
+        appendChatMessage('milo', `Automated SMS sent to <strong>${pName}</strong>: <em>"Hi ${pName}, your 9:30 AM appointment with Dr. Patel is starting soon. Please reply to confirm your arrival time."</em>`);
+        updateTurnByTurnSuggestions();
+      }, 500);
+      break;
+
+    case 'PROMPT_CALL_PATIENT':
+      scenarioState.activeState = 'STATE_POST_CONTACT';
+      changeMiloEmotion('alert');
+      setTimeout(() => {
+        appendChatMessage('milo', `Initiating phone dialer link for <strong>${pName}</strong> (<span class="tabular-nums">+1 555-0198</span>)...`);
+        updateTurnByTurnSuggestions();
+      }, 500);
+      break;
+
+    case 'CHECK_INCOMING_MSG':
+      changeMiloEmotion('focused');
+      setTimeout(() => {
+        appendChatMessage('milo', `No new SMS reply received from <strong>${scenarioState.activePatient.name}</strong> yet (SMS sent 2 mins ago).`);
+        updateTurnByTurnSuggestions();
+      }, 500);
+      break;
+
+    case 'SWAP_SLOTS_WITH_NEXT':
+      scenarioState.activeState = 'STATE_3_ARRIVED';
+      // Swap active patient to Sarah Smith
+      const oldActive = { ...scenarioState.activePatient };
+      scenarioState.activePatient = { ...scenarioState.nextPatient, time: '9:30 AM' };
+      scenarioState.nextPatient = { ...oldActive, time: '10:30 AM' };
+      changeMiloEmotion('happy');
+
+      // Generate real-time timestamp (e.g., 10:42 AM)
+      const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      setTimeout(() => {
+        const row = document.createElement('div');
+        row.className = 'system-alert-row';
+        row.innerHTML = `
+          <div class="system-alert-card">
+            <div class="system-alert-header">
+              <div class="system-alert-badge">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                <span>Automated System Alert &bull; Today at ${nowTime}</span>
+              </div>
+            </div>
+            <h4 class="system-alert-title">Appointment Time Swap Confirmed</h4>
+            <p class="system-alert-sub">Messages with appointment change details have been automatically sent to both patients for awareness.</p>
+            <div class="system-swap-details-box">
+              <div class="swap-detail-item">
+                <span class="detail-label">New Appointment Slot:</span>
+                <strong class="detail-value">${scenarioState.activePatient.name} &ndash; Today at 9:30 AM (Waiting in Lobby A)</strong>
+              </div>
+              <div class="swap-detail-item">
+                <span class="detail-label">Rescheduled Patient:</span>
+                <strong class="detail-value">${scenarioState.nextPatient.name} &ndash; Rescheduled to 10:30 AM</strong>
+              </div>
+              <div class="swap-detail-item">
+                <span class="detail-label">Provider:</span>
+                <strong class="detail-value">Dr. Patel (General Practice / Cardiology)</strong>
+              </div>
+              <div class="swap-detail-item">
+                <span class="detail-label">Status:</span>
+                <span class="state-indicator-badge state-badge-checked" style="width:fit-content; margin-top:2px;">Updated &amp; Synced with Calendar</span>
+              </div>
+            </div>
+            <p class="system-alert-footer">Need to make further changes? Reply to Milo at any time.</p>
+          </div>
+        `;
+        chatMessages.appendChild(row);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        updateTurnByTurnSuggestions();
+      }, 500);
+      break;
+
+    // Transition to State 4: Schedule Overrun / Delay Management
+    case 'GOTO_STATE_4':
+    case 'START_CONSULTATION':
+      scenarioState.activeState = 'STATE_4_OVERRUN';
+      changeMiloEmotion('thinking');
+      setTimeout(() => {
+        appendChatMessage('milo', `
+          <span class="state-indicator-badge state-badge-session">● Consultation In Progress</span><br>
+          Active session with <strong>${scenarioState.activePatient.name}</strong> started in Room 2.<br><br>
+          <em style="font-size:12px; color:#EA580C;">Schedule Monitor: Consultation running 10+ minutes over. Next patient (${scenarioState.nextPatient.name}) is waiting in lobby.</em>
+        `);
+        updateTurnByTurnSuggestions();
+      }, 500);
+      break;
+
+    case 'NOTIFY_15M_DELAY':
+      changeMiloEmotion('thinking');
+      setTimeout(() => {
+        appendChatMessage('milo', `Broadcast sent to <strong>${scenarioState.nextPatient.name}</strong> and waiting queue: <em>"Dr. Patel is running approximately 15 minutes behind schedule. We apologize for the delay."</em>`);
+      }, 500);
+      break;
+
+    case 'OFFER_RESCHEDULE_WAITLIST':
+      changeMiloEmotion('thinking');
+      setTimeout(() => {
+        appendChatMessage('milo', `SMS options sent to waiting list offering automated 1-click rescheduling to tomorrow morning.`);
+      }, 500);
+      break;
+
+    // Transition to State 5: Post-Consultation & Queue Transition
+    case 'GOTO_STATE_5':
+      scenarioState.activeState = 'STATE_5_POST_CONSULT';
+      changeMiloEmotion('celebrating');
+      setTimeout(() => {
+        appendChatMessage('milo', `
+          <span class="state-indicator-badge state-badge-done">🎉 Consultation Completed</span><br>
+          Session completed for <strong>${scenarioState.activePatient.name}</strong>. Summary card generated.
+        `);
+        updateTurnByTurnSuggestions();
+      }, 500);
+      break;
+
+    case 'OPEN_CLINICAL_NOTES':
+      changeMiloEmotion('celebrating');
+      setTimeout(() => {
+        const row = document.createElement('div');
+        row.className = 'chat-bubble-row milo-bubble';
+        row.innerHTML = `
+          <img src="assets/milo/milo_thumbsup.png" alt="Milo" class="chat-avatar">
+          <div class="chat-bubble-content" style="width:100%;">
+            <p><strong>Clinical Notes &ndash; ${scenarioState.activePatient.name}</strong></p>
+            <div class="note-editor-box">
+              <textarea class="note-textarea" id="note-text-input" placeholder="Type clinical observations or select quick tags..."></textarea>
+              <div class="quick-tags-strip">
+                <span class="quick-tag-chip" onclick="appendTagToNote('Routine Consultation')">Routine Consultation</span>
+                <span class="quick-tag-chip" onclick="appendTagToNote('Vitals Stable')">Vitals Stable</span>
+                <span class="quick-tag-chip" onclick="appendTagToNote('Prescription Issued')">Prescription Issued</span>
+                <span class="quick-tag-chip" onclick="appendTagToNote('Follow-up in 2 weeks')">Follow-up 2 wks</span>
+              </div>
+              <div style="display:flex; justify-content:flex-end;">
+                <button class="smart-sug-pill primary-green" onclick="saveClinicalNote('${scenarioState.activePatient.name}')">Save Notes</button>
+              </div>
+            </div>
+          </div>
+        `;
+        chatMessages.appendChild(row);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }, 500);
+      break;
+
+    case 'OPEN_FOLLOWUP_PICKER':
+      changeMiloEmotion('celebrating');
+      setTimeout(() => {
+        const row = document.createElement('div');
+        row.className = 'chat-bubble-row milo-bubble';
+        row.innerHTML = `
+          <img src="assets/milo/milo_thumbsup.png" alt="Milo" class="chat-avatar">
+          <div class="chat-bubble-content" style="width:100%;">
+            <div class="inline-picker-card">
+              <div class="inline-picker-header">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#16A34A" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/></svg>
+                <span>Schedule Follow-up for ${scenarioState.activePatient.name}</span>
+              </div>
+              <div class="picker-row">
+                <label style="font-size:11px; font-weight:600; color:#475569;">Select Date:</label>
+                <input type="date" value="2026-08-10" class="inline-date-input" id="resched-date">
+                <label style="font-size:11px; font-weight:600; color:#475569; margin-top:6px;">Available Time Slots:</label>
+                <div class="time-slots-grid">
+                  <div class="time-slot-pill selected" onclick="selectTimeSlot(this)">9:30 AM</div>
+                  <div class="time-slot-pill" onclick="selectTimeSlot(this)">11:00 AM</div>
+                  <div class="time-slot-pill" onclick="selectTimeSlot(this)">2:30 PM</div>
+                  <div class="time-slot-pill" onclick="selectTimeSlot(this)">4:00 PM</div>
+                </div>
+              </div>
+              <div style="display:flex; justify-content:flex-end;">
+                <button class="smart-sug-pill primary-green" onclick="confirmReschedule('${scenarioState.activePatient.name}')">Book Follow-up</button>
+              </div>
+            </div>
+          </div>
+        `;
+        chatMessages.appendChild(row);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }, 500);
+      break;
+
+    case 'CALL_NEXT_PATIENT':
+      scenarioState.activeState = 'STATE_2_READINESS';
+      // Shift next patient to active
+      scenarioState.activePatient = { ...scenarioState.nextPatient };
+      scenarioState.nextPatient = { name: 'Robert Johnson', time: '11:30 AM', reason: 'Meds Review', room: 'Room 3' };
+      changeMiloEmotion('attentive');
+      setTimeout(() => {
+        appendChatMessage('milo', `
+          <span class="state-indicator-badge state-badge-next">➡️ Next Patient Queued</span><br>
+          Transitioning to next appointment: <strong>${scenarioState.activePatient.name}</strong> (${scenarioState.activePatient.time} &bull; ${scenarioState.activePatient.reason}).
+        `);
+        updateTurnByTurnSuggestions();
+      }, 500);
+      break;
+
+    // Helper Actions
+    case 'SHOW_CONFIRMATIONS':
+      changeMiloEmotion('welcoming');
+      setTimeout(() => {
+        appendChatMessage('milo', `You have <strong>2 pending confirmations</strong>:<br>1. <strong>Ritika Sharma</strong> (9:30 AM)<br>2. <strong>Sarah Smith</strong> (10:30 AM)`);
+      }, 500);
+      break;
+
+    case 'SHOW_SCHEDULE':
+      changeMiloEmotion('welcoming');
+      setTimeout(() => {
+        appendChatMessage('milo', `<strong>Today's Schedule Summary:</strong><br>&bull; 9:30 AM: Ritika Sharma (Consultation)<br>&bull; 10:30 AM: Sarah Smith (Follow-up)<br>&bull; 11:30 AM: Robert Johnson (Meds Review)`);
+      }, 500);
+      break;
+
+    case 'REVIEW_COMPLAINT':
+      changeMiloEmotion('attentive');
+      setTimeout(() => {
+        appendChatMessage('milo', `<strong>Chief Complaint &ndash; ${pName}:</strong><br>&bull; Primary symptom: Tooth sensitivity & mild molar pain for 3 days.<br>&bull; Medical history: Clean, no allergies.`);
+      }, 500);
+      break;
+
+    case 'NOTIFY_READY':
+      changeMiloEmotion('attentive');
+      setTimeout(() => {
+        appendChatMessage('milo', `Notification dispatches to <strong>${pName}</strong>: <em>"Dr. Patel is ready for you in Room 2."</em>`);
+      }, 500);
+      break;
   }
 }
 
-// Render contextual action pills inside suggested actions strip based on active state
 function updateSuggestedActionsStrip() {
   updateTurnByTurnSuggestions();
 }
@@ -619,6 +1049,24 @@ if (openMiloChatLink) {
   openMiloChatLink.addEventListener('click', (e) => {
     e.stopPropagation();
     setView('milo');
+  });
+}
+
+// Bind Milo Top Header Navigation Buttons (Back & Close)
+const miloBackBtn = document.getElementById('milo-back-home-btn');
+const miloCloseBtn = document.getElementById('milo-close-home-btn');
+
+if (miloBackBtn) {
+  miloBackBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    setView('home');
+  });
+}
+
+if (miloCloseBtn) {
+  miloCloseBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    setView('home');
   });
 }
 
